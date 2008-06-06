@@ -342,56 +342,5 @@ module Access
                     )
   end
 
-  ################################################################
-
-  # :call-seq:
-  #   logged_in_as(user[, :acting_as => other]) do ... end
-  #
-  # Helper for controller tests:  fake being logged in as a 
-  # particular user in the session.  The :acting_as argument
-  # is as for User.as
-
-  def logged_in_as( user, options = {} )
-    old_current = @request.session[:current_user_id]
-    old_of_rec  = @request.session[:user_of_record_id]
-    log_in_as user, options
-    yield
-  ensure
-    @request.session[:current_user_id]   = old_current
-    @request.session[:user_of_record_id] = old_of_rec
-  end
-
-  # :call-seq:
-  #   logged_in_as(user[, :acting_as => other]) do ... end
-  #
-  # Log in as a particular user.  Useful for setup methods
-  # in controller tests, in which most tests will want to
-  # be logged in as the same user.  The optional :acting_as
-  # argument is as for User.as
-
-  def log_in_as( user, options = {} )
-    @request.session[:current_user_id]   = 
-      options.has_key?( :acting_as ) ? options[:acting_as].id : user.id
-    @request.session[:user_of_record_id] = user.id
-  end
-
-  # For tests of things that want to take advantage of the
-  # "diverted request" machinery in applicationhelper.rb
-
-  def remember_diversion( controller_name, action_name )
-    @request.session[:diverted_controller] = controller_name
-    @request.session[:diverted_action]     = action_name
-  end
-
-  def assert_diverted_from( controller_name, action_name )
-    assert_equal controller_name, session[:diverted_controller]
-    assert_equal action_name,     session[:diverted_action]
-  end
-  
-  def assert_diversion_done
-    assert_nil session[:diverted_controller]
-    assert_nil session[:diverted_action]
-  end
-
  end
 end
