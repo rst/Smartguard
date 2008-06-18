@@ -969,7 +969,7 @@ module Access
                 else
                   log_hash[:success] = false
                   Smartguard::Logging.log( log_hash )
-                  raise PermissionFailure.new("Not authorized to #{priv}",
+                  raise PermissionFailure.new("Not authorized to #{priv} on #{klass}",
                                               :privilege => priv,
                                               :target_class => klass, 
                                               :target => foreign_id)
