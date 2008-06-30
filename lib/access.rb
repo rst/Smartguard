@@ -34,6 +34,19 @@ class PermissionFailure < SecurityError
   attr_accessor :privilege, :target, :target_class
 
   def initialize( message, keys = {} )
+    target = keys[:target]
+    unless keys[:target].nil?
+      message += " " + target.class.to_s.underscore + " "
+      message += ((target.name||"UNNAMED")+' ') if target.respond_to?( :name )
+      if target.is_a?( ActiveRecord::Base )
+        targ_id = target.id
+        if targ_id.nil?
+          message += "(UNSAVED)"
+        else
+          message += "(" + targ_id.to_s + ")"
+        end
+      end
+    end
     super( message )
     self.privilege    = keys[:privilege]
     self.target       = keys[:target]

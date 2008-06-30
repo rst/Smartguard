@@ -523,7 +523,7 @@ class PermissioningTest < Test::Unit::TestCase
     assert err.is_a?( PermissionFailure )
     assert err.is_a?( SecurityError )
     assert_equal :grok,              err.privilege
-    assert_equal "bogon",            err.message
+    assert_equal "bogon blog mertz family blog (1)", err.message
     assert_equal Blog,               err.target_class
     assert_equal blogs(:mertz_blog), err.target
 
@@ -550,7 +550,8 @@ class PermissioningTest < Test::Unit::TestCase
       rescue
         err = $!
         assert err.is_a?( PermissionFailure )
-        assert_equal "not authorized to grok", err.message
+        assert_equal "not authorized to grok blog mertz family blog (1)", 
+                     err.message
         assert_equal :grok,                    err.privilege
         assert_equal blogs(:mertz_blog),       err.target
         assert_equal Blog,                     err.target_class
@@ -630,7 +631,7 @@ class PermissioningTest < Test::Unit::TestCase
     rescue PermissionFailure
       err = $!
       assert err.is_a?( PermissionFailure )
-      assert_equal "not authorized to grant", err.message
+      assert_equal "not authorized to grant permission (UNSAVED)", err.message
       assert_equal :grant,                    err.privilege
       assert_equal new_perm,                  err.target
       assert_equal Permission,                err.target_class
