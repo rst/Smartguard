@@ -1,0 +1,24 @@
+This generator installs basic Role, RoleAssignment and 
+Permission models as required by Smartguard, along with
+migrations to create them.  You may wish to add an access
+control to these models themselves.  (Then again, you may
+wish that the author of the generator had provided one as
+an option; that's coming soon.)
+
+This generator also installs a unit test which simply 
+assures that Smartguard's require models are present and
+correctly wired up.
+
+The generator DOES NOT INSTALL a User model.  Smartguard
+requires one nonetheless, but it doesn't require much of 
+it.  No particular fields are required; just come up with
+a User class that meets your requirements (the one from
+the restful_authentication plugin should work fine), and
+add the line
+
+  include SmartguardBasicUser
+
+as the first line of the class definition (that is,
+immediately after 'class User < ActiveRecord::Base').
+The unit test installed by the generator will make sure
+that you've done this correctly.

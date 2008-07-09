@@ -1,0 +1,37 @@
+mertz_admin:
+  id:            1
+  name:          admin
+  owner_id:      1       # fred
+  owner_firm_id: 4       # mertz
+  created_at:    2006-10-31
+  updated_at:    2006-10-31
+ricardo_admin:
+  id:            2
+  name:          admin
+  owner_id:      3       # lucy
+  owner_firm_id: 3       # ricardo
+  created_at:    2006-10-31
+  updated_at:    2006-10-31
+
+# To be used in scoping tests --- see test_helper
+
+ricardo_twiddler:
+  id:            3
+  name:          twiddler
+  owner_id:      3       # lucy
+  owner_firm_id: 3       # ricardo
+  created_at:    2006-10-31
+  updated_at:    2006-10-31
+
+# Roles and users, and perms themselves have their own permissions, 
+# so a lot of tests need permission to manipulate them.  Available
+# like so:
+
+universal_grant:
+  id:            4
+  name:          universal_grant
+  owner_id:      6       # universal grant guy
+  owner_firm_id: 2       # Dubuque
+  created_at:    2006-10-31
+  updated_at:    2006-10-31
+
