@@ -614,7 +614,12 @@ class PermissioningTest < Test::Unit::TestCase
       klone.save!
     end
       
-    assert_requires( one_object_perm( :edit, roles(:ricardo_twiddler) )) do
+    assert_requires( grant_perm ) do
+      klone.reload.save!
+    end
+      
+    assert_requires( one_object_perm( :edit, roles(:ricardo_twiddler) ),
+                     grant_perm ) do
       klone.destroy
     end
       
@@ -631,7 +636,8 @@ class PermissioningTest < Test::Unit::TestCase
     rescue PermissionFailure
       err = $!
       assert err.is_a?( PermissionFailure )
-      assert_equal "not authorized to grant permission (UNSAVED)", err.message
+      assert_equal "no grant allowing create of permission (UNSAVED)", 
+                   err.message
       assert_equal :grant,                    err.privilege
       assert_equal new_perm,                  err.target
       assert_equal Permission,                err.target_class

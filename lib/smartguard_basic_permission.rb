@@ -27,6 +27,25 @@ module SmartguardBasicPermission
       column_names.grep( /^target_/ ) - [ 'target_owned_by_self' ]
     end
 
+    def verify_grant( perm, op )
+      log_hash = {
+        :model_class => 'Permission',
+        :privilege   => 'grant',
+        :user_id     => User.current.id,
+        :user_name   => User.current.name
+      }
+      if perm.permits_action?( op, User.current )
+        log_hash[:success] = true
+        Smartguard::Logging.log( log_hash )
+      else
+        log_hash[:success] = false
+        Smartguard::Logging.log( log_hash )
+        raise PermissionFailure.new( "no grant allowing #{op} of",
+                                     :privilege => :grant,
+                                     :target    => perm )
+      end
+    end
+
   end
 
   def self.included(klass)
@@ -44,24 +63,18 @@ module SmartguardBasicPermission
 
     # Before any save, check that the current user has an applicable grant.
 
-    klass.before_save do |perm|
-      log_hash = {
-        :model_class => 'Permission',
-        :privilege   => 'grant',
-        :user_id     => User.current.id,
-        :user_name   => User.current.name
-      }
-      if User.current.permissions.any?{ |grant| grant.can_grant?( perm ) }
-        log_hash[:success] = true
-        Smartguard::Logging.log( log_hash )
-      else
-        log_hash[:success] = false
-        Smartguard::Logging.log( log_hash )
-        raise PermissionFailure.new( "not authorized to grant",
-                                     :privilege => :grant,
-                                     :target    => perm )
-      end
+    klass.before_create do |perm|
+      klass.verify_grant( perm, :create )
     end
+
+    klass.before_update do |perm|
+      klass.verify_grant( perm, :update )
+    end
+
+    klass.before_destroy do |perm|
+      klass.verify_grant( perm, :destroy )
+    end
+
   end
 
   # Different classes support different privileges,
@@ -221,4 +234,16 @@ module SmartguardBasicPermission
 
   end
 
+  # Permissions for permission objects themselves depend on grants,
+  # so we need to special-case some of the usual API...
+
+  def permits_action?( event_name, user = User.current )
+
+    # event_name is actually ignored, per current policy;
+    # they *all* require the same thing, a relevant grant...
+
+    user.permissions.any?{ |grant| grant.can_grant?( self ) }
+
+  end
+    
 end
