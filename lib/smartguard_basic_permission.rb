@@ -160,7 +160,7 @@ module SmartguardBasicPermission
     end
 
     if obj.class.name != self.class_name
-      raise ArgumentError, "#{obj.class.name} was not a #{self.class.name}"
+      raise ArgumentError, "#{obj.class.name} was not a #{self.class_name}"
     end
 
     self.target_id   = obj.id
