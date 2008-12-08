@@ -252,26 +252,50 @@ module Access
       # sensible values for target_id in a new permission coined off the
       # grant, in a format which is meant to be useful for Rails 'select'
       # form helpers.
+      #
+      # Assumes the class has a 'name' column; for more general solutions,
+      # see choice_hashes_for_grant, which this trivially wraps.
 
-      def choices_for_grant( grant_perm )
+      def choices_for_grant_target( grant_perm )
+        choices = choice_hashes_for_grant_target( grant_perm, :columns=>'name')
+        return choices.collect{ |h| [ h['name'], h['id'] ] }
+      end
 
-        if grant_perm.class_name != 'any' && grant_perm.class_name != self.name
-          return []
-        end
+      # Similar to choices_for_grant_target (q.v.), but instead returns
+      # an array of hashes whose keys include 'id', and whatever else 
+      # is requested via the :columns keyword parameters.  
+      #
+      # Note that keys in the hashes are strings, not symbols.
+      #
+      # Takes two optional keyword arguments ---
+      #   :columns --- a string containing raw SQL to specify columns
+      #                other than :id that will be in the returned hashes,
+      #   :joins --- joins to the class's table from which :columns may
+      #              be taken
 
-        if !grant_perm.is_grant? || grant_perm.target_owned_by_self?
-          return []
-        end
+      def choice_hashes_for_grant_target( grant_perm, options = {} )
+
+        options.assert_valid_keys( :columns, :joins )
+        cols = options[:columns]
+        cols = ', ' + cols unless cols.nil?
 
         tbl = self.table_name
         sql = <<-END_SQL
-          select distinct #{tbl}.id, #{tbl}.name from #{tbl}, permissions p
+          select distinct #{tbl}.id #{cols}
+          from permissions p, #{tbl} #{options[:joins]}
           where p.id = :grant
+            and p.class_name in ('any', :klass)
+            and p.is_grant = :true
+            and p.target_owned_by_self = :false
             and #{self.permission_grant_conditions}
         END_SQL
-        query = sanitize_sql [sql, { :grant => grant_perm }]
-        hashes = connection.select_all( query )
-        return hashes.collect{ |h| [ h['name'], h['id'] ] }
+        query = sanitize_sql [sql, 
+                              { :grant => grant_perm,
+                                :klass => self.name,
+                                :true  => true,
+                                :false => false
+                              }]
+        return connection.select_all( query )
 
       end
 
