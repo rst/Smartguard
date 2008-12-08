@@ -18,6 +18,6 @@ mysql:
   :database: smartguard_test
 oracle:
   :adapter: oracle
-  :username: rails_rst_test
-  :password: rails_rst_test
-  :database: SL3_DEMO
+  :username: rails_audit_test
+  :password: rails_audit_test
+  :database: railyard_standby

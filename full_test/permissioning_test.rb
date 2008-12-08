@@ -535,6 +535,45 @@ class PermissioningTest < Test::Unit::TestCase
 
   end
 
+  def test_choices_for_grant
+    with_test_role_for_unprivileged_guy do |user, role|
+
+      gperm = Permission.create! :role => role, :is_grant => true,
+         :class_name => 'Blog', :target_owner_firm => firms(:mertz),
+         :privilege => :post, :target_owned_by_self => false,
+         :has_grant_option => false
+
+      assert_choices_for_grant_yields gperm, 
+        Blog.find_all_by_owner_firm_id( firms(:mertz) )
+
+      gperm.update_attributes! :target_owner_firm => firms(:dubuque)
+      assert_choices_for_grant_yields gperm, 
+        Blog.find_all_by_owner_firm_id( firms(:dubuque) )
+
+      gperm.update_attributes! :target_owned_by_self => true
+      assert_equal [], Blog.choices_for_grant( gperm )
+
+      gperm.update_attributes! :target_owned_by_self => false
+      gperm.update_attributes! :is_grant => false
+      assert_equal [], Blog.choices_for_grant( gperm )
+
+      gperm.update_attributes! :is_grant => true
+      gperm.update_attributes! :class_name => 'User', :privilege => 'any'
+      assert_equal [], Blog.choices_for_grant( gperm )
+
+      gperm.update_attributes! :class_name => 'Blog'
+      assert_choices_for_grant_yields gperm, 
+        Blog.find_all_by_owner_firm_id( firms(:dubuque) )
+
+    end
+  end
+
+  def assert_choices_for_grant_yields( grant, items )
+    we_want = items.collect{ |item| [item.name, item.id] }.sort_by( &:last )
+    we_got  = Blog.choices_for_grant( grant ).sort_by( &:last )
+    assert_equal we_want, we_got
+  end
+
   # Testing the low-level superstructure around the basic engine
 
   def test_permission_failure_class

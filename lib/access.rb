@@ -247,6 +247,34 @@ module Access
         end.join(' and ')
       end
 
+      # Given a grant permission, return names and ids of individual objects
+      # of this class which could be permitted by the grant.  These are
+      # sensible values for target_id in a new permission coined off the
+      # grant, in a format which is meant to be useful for Rails 'select'
+      # form helpers.
+
+      def choices_for_grant( grant_perm )
+
+        if grant_perm.class_name != 'any' && grant_perm.class_name != self.name
+          return []
+        end
+
+        if !grant_perm.is_grant? || grant_perm.target_owned_by_self?
+          return []
+        end
+
+        tbl = self.table_name
+        sql = <<-END_SQL
+          select distinct #{tbl}.id, #{tbl}.name from #{tbl}, permissions p
+          where p.id = :grant
+            and #{self.permission_grant_conditions}
+        END_SQL
+        query = sanitize_sql [sql, { :grant => grant_perm }]
+        hashes = connection.select_all( query )
+        return hashes.collect{ |h| [ h['name'], h['id'] ] }
+
+      end
+
       include Access::RequirePrivilege::ClassMethods
       
     end
