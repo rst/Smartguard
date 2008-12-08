@@ -371,6 +371,10 @@ class RequirePermTest < Test::Unit::TestCase
       assert_raises( PermissionFailure ) do 
         entry.entry_txt = 'Welcome to the Mertz blog!'
       end
+      entry = BlogEntry.new # no blog
+      assert_raises( PermissionFailure ) do
+        entry.entry_txt = 'Welcome to the Mertz blog!'
+      end
     end
 
     assert_requires( one_object_perm( :change_post, blogs(:mertz_blog) )) do

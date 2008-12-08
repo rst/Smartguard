@@ -340,7 +340,17 @@ module Access
     # on an associated object...
 
     def check_permission!( priv, user = User.current )
+
       (priv, associate) = disassemble_priv( priv )
+
+      if associate.nil?
+        log_text = "permission check: #{priv} on MISSING associate"
+        logger.warn "=== FAILED #{log_text}"
+        raise PermissionFailure.new( "not authorized to #{priv}",
+                                     :privilege => priv,
+                                     :target => self )
+      end
+
       associate_name = associate.class.to_s + ' ' +
         ((associate.has_attribute?(:name)? associate.name : nil) || 'X')
       log_text = "permission check: #{priv} #{associate_name}(#{associate.id})"
@@ -361,7 +371,7 @@ module Access
         Smartguard::Logging.log( log_hash )
         raise PermissionFailure.new( "not authorized to #{priv}",
                                      :privilege => priv,
-                                     :target    => associate )
+                                     :target    => self )
       else
         log_hash[:success] = true
         Smartguard::Logging.log( log_hash )
