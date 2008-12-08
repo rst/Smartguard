@@ -29,9 +29,12 @@ class Role < ActiveRecord::Base
 
   owner_attrs_and_validations :default_from_current_user => true
 
-  require_privilege :assign, :to_associate_as  => 'RoleAssignment#role'
+  require_privilege :assign, 
+    :to_associate_as  => ['RoleAssignment#role', 'Role#parent_role']
+
   require_privilege :edit,   :to_associate_as  => 'Permission#role',
-                             :to_dissociate_as => 'Permission#role'
+                             :to_dissociate_as => 'Permission#role',
+    :to_set_attribute => ['parent_role_id']
 
   require_eponymous_privilege_to :create, :destroy
 

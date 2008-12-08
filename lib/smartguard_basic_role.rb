@@ -23,5 +23,7 @@
 module SmartguardBasicRole
   def self.included( klass )
     klass.has_many :permissions
+    klass.belongs_to :parent_role, :class_name => 'Role', 
+      :foreign_key => 'parent_role_id'
   end
 end

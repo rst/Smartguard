@@ -217,10 +217,7 @@ module Access
         return sanitize_sql( [ <<-END_SQL, keys ] )
           exists
             (select 'x' from permissions p
-             where exists (select 'x' from role_assignments
-                           where user_id = :user
-                             and role_assignments.role_id = p.role_id
-                             and #{RoleAssignment.current_sql_condition})
+             where role_id in #{User.role_assigned_cond( ':user' )}
                and (p.privilege  = :privilege or p.privilege = 'any')
                and (p.class_name = :class_name)
                and (p.is_grant   = :false)

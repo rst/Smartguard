@@ -103,6 +103,7 @@ ActiveRecord::Schema.define(:version => 1) do
     t.datetime "updated_at",                   :null => false
     t.integer  "owner_id",                     :null => false
     t.integer  "owner_firm_id",                :null => false
+    t.integer  "parent_role_id"
   end
 
   add_index "roles", ["owner_firm_id"], :name => "roles_by_firm"

@@ -38,9 +38,22 @@ module SmartguardBasicUser
       return if @have_roles_assoc
       undef_method :roles
       self.has_many :roles, 
-        :through => :role_assignments,
-        :conditions => RoleAssignment.current_sql_condition
+        #:through => :role_assignments,
+        :finder_sql => 'select * from roles where id in ' +
+                        role_assigned_cond('#{id}'),
+        :counter_sql => 'select count(*) from roles where id in ' +
+                        role_assigned_cond('#{id}')
       @have_roles_assoc = :true
+    end
+
+    def role_assigned_cond( id_stub ) #:nodoc:
+      return <<-END_SQL
+        (select id from roles
+         start with id in (select role_id from role_assignments
+                           where user_id = #{id_stub}
+                           and #{RoleAssignment.current_sql_condition})
+               connect by prior id = parent_role_id)
+      END_SQL
     end
 
     # :call-seq:
@@ -110,12 +123,8 @@ module SmartguardBasicUser
 
     @permissions = nil if force_reload
 
-    @permissions ||= 
-      Permission.find :all, :conditions => 
-        ["role_id in (select role_id from role_assignments
-                      where user_id = ?
-                        and #{RoleAssignment.current_sql_condition})",
-         self.id]
+    cond_str = 'role_id in ' + self.class.role_assigned_cond( '?' )
+    @permissions ||= Permission.find :all, :conditions => [cond_str, self]
 
     @permissions_by_class_and_op = sort_permissions( @permissions )
 
@@ -129,8 +138,8 @@ module SmartguardBasicUser
   # the association late...
 
   def roles( force_reload = false ) # :nodoc:
-    self.class.ensure_roles_assoc # redefines the 'roles' method...
-    self.roles( force_reload )    # ... now invoke the new one.
+   self.class.ensure_roles_assoc # redefines the 'roles' method...
+   self.roles( force_reload )    # ... now invoke the new one.
   end
 
   # Only the grant permissions of this user, as an array.

@@ -162,11 +162,11 @@ class PermissioningTest < Test::Unit::TestCase
     assert_equal 0,  user.roles.count
 
     User.as( users( :universal_grant_guy)) do
-      user.roles << roles(:mertz_admin)
+      user.role_assignments.create! :role => roles(:mertz_admin)
       assert_equal mertz_permissions, user_current_permissions.call
       assert_equal 1,                 user.roles.count
 
-      user.roles << roles(:ricardo_admin)
+      user.role_assignments.create! :role => roles(:ricardo_admin)
       assert_equal mixed_permissions, user_current_permissions.call
       assert_equal 2,                 user.roles.count
     end
@@ -339,6 +339,11 @@ class PermissioningTest < Test::Unit::TestCase
 
     with_test_role_for_unprivileged_guy do |luser, role|
 
+      subrole = Role.create! :name => 'subrole', :parent_role => role
+      ssrole  = Role.create! :name => 'ssrole',  :parent_role => subrole
+
+      target_roles = [role, subrole, ssrole]
+
       [ luser, users(:lucy), users(:ricky) ].each do |user|
         flags = base_flags.merge :owner => user
         [ :ricardo, :dubuque ].each do |firm_name|
@@ -374,16 +379,20 @@ class PermissioningTest < Test::Unit::TestCase
       # Actual tests:
 
       perms_sets.each do |perms_set|
-        assert_grant_queries_work_one_perm :post, luser, role, 
-          perms_set.first, perms_set.last
+        target_roles.each do |trole|
+          assert_grant_queries_work_one_perm :post, luser, trole, 
+            perms_set.first, perms_set.last
+        end
       end
 
       perms_sets.each_with_index do |perms_set_a, i|
         perms_sets.each_with_index do |perms_set_b, j|
           if i != j
-            assert_perms_work_in_combination :post, luser, role,
-              perms_set_a.first + perms_set_b.first,
-              [ perms_set_a.last, perms_set_b.last ]
+            target_roles.each do |trole|
+              assert_perms_work_in_combination :post, luser, trole,
+                perms_set_a.first + perms_set_b.first,
+                [ perms_set_a.last, perms_set_b.last ]
+            end
           end
         end
       end
@@ -419,6 +428,7 @@ class PermissioningTest < Test::Unit::TestCase
 
     # Now, assign our permission to the user's (empty) role.
 
+    parent_str = role.parent_role ? "w/parent #{role.parent_role.name}" : ''
     perm.role = role
     perm.save!
 
@@ -440,36 +450,24 @@ class PermissioningTest < Test::Unit::TestCase
 
     with_access_granting_tweaks( perm ) do |msg|
 
-      # If the role is expired, we shouldn't grant access either.
+      if user.role_assignments.find( :all, :conditions => { :role_id => role }).empty?
+        # Indirectly assigned as subrole
+        check_access_grant( recs, user, klass, op, msg )
+      else
 
-      with_expired_role_assignment( user, role ) do
-        assert_equal 0, (klass.count_permitting op), msg + ' in expired role'
-      end
+        # Direct assignment
+        # If the role is expired, we shouldn't grant access either.
 
-      # But if the role is current, we should get all of our
-      # records out of 'klass.all_permitting', and the right 
-      # number out of 'klass.count_permitting'.
+        with_expired_role_assignment( user, role ) do
+          assert_equal 0, (klass.count_permitting op), msg + ' in expired role'
+        end
 
-      with_current_role_assignment( user, role ) do
+        # But if the role is current, we should get all of our
+        # records out of 'klass.all_permitting', and the right 
+        # number out of 'klass.count_permitting'.
 
-        assert_equal recs.size, (klass.count_permitting op), msg
-
-        assert_equal (recs.sort_by &:id), 
-                     ((klass.all_permitting op).sort_by &:id),
-                     msg
-
-        # Verify that the SQL and the in-core permits stuff 
-        # do the same thing for all available records.
-
-        rec_ids = recs.collect &:id
-        user.permissions :force_reload
-
-        (klass.find :all).each do |rec|
-          if rec_ids.include?( rec.id )
-            assert rec.permits?( op ), msg
-          else
-            assert !rec.permits?( op ), msg
-          end
+        with_current_role_assignment( user, role ) do
+          check_access_grant( recs, user, klass, op, msg )
         end
       end
     end
@@ -479,6 +477,29 @@ class PermissioningTest < Test::Unit::TestCase
     perm.destroy
     user.permissions :force_reload
 
+  end
+
+  def check_access_grant( recs, user, klass, op, msg )
+
+    assert_equal recs.size, (klass.count_permitting op), msg
+
+    assert_equal (recs.sort_by &:id), 
+                 ((klass.all_permitting op).sort_by &:id),
+                 msg
+
+    # Verify that the SQL and the in-core permits stuff 
+    # do the same thing for all available records.
+
+    rec_ids = recs.collect &:id
+    user.permissions :force_reload
+
+    (klass.find :all).each do |rec|
+      if rec_ids.include?( rec.id )
+        assert rec.permits?( op ), msg
+      else
+        assert !rec.permits?( op ), msg
+      end
+    end
   end
 
   def assert_perms_work_in_combination( op, user, role, recs, perms )
