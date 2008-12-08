@@ -339,8 +339,11 @@ class PermissioningTest < Test::Unit::TestCase
 
     with_test_role_for_unprivileged_guy do |luser, role|
 
-      subrole = Role.create! :name => 'subrole', :parent_role => role
-      ssrole  = Role.create! :name => 'ssrole',  :parent_role => subrole
+      subrole = Role.create! :name => 'subrole'
+      role.update_attributes! :parent_role => subrole
+
+      ssrole  = Role.create! :name => 'ssrole'
+      subrole.update_attributes! :parent_role => ssrole
 
       target_roles = [role, subrole, ssrole]
 

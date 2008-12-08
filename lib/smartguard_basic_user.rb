@@ -52,7 +52,7 @@ module SmartguardBasicUser
          start with id in (select role_id from role_assignments
                            where user_id = #{id_stub}
                            and #{RoleAssignment.current_sql_condition})
-               connect by prior id = parent_role_id)
+               connect by prior parent_role_id = id)
       END_SQL
     end
 
