@@ -93,7 +93,7 @@ class PermissioningTest < Test::Unit::TestCase
       begin
         yield msg
       ensure
-        perm.update_attributes! attr => old_val
+        perm.reload.update_attributes! attr => old_val
       end
     end
   end
@@ -442,6 +442,8 @@ class PermissioningTest < Test::Unit::TestCase
     assert_equal ([perm] + ug_permissions).collect(&:id).sort,
                  user.permissions.collect(&:id).sort
 
+    perm_dump( user, recs, perm, 'after assign' )
+
     # If the access_blocking_tweaks are applied to our permission,
     # it still shouldn't grant access.
 
@@ -450,6 +452,8 @@ class PermissioningTest < Test::Unit::TestCase
       user.permissions :force_reload
       assert !user.can?( op, recs.first )
     end
+
+    perm_dump( user, recs, perm, 'after blocks' )
 
     with_access_granting_tweaks( perm ) do |msg|
 
@@ -482,8 +486,27 @@ class PermissioningTest < Test::Unit::TestCase
 
   end
 
+  def perm_dump( user, recs, perm, foo )
+    return
+    puts foo
+    assert user.role_assignments.count > 0
+    user.role_assignments(:reload).each do |ra|
+      puts "#{ra.user.name} has role #{ra.role.name}"
+    end
+    user.permissions(:reload).each do |perm|
+      if !perm.is_grant? && !["User", "Role"].include?( perm.class_name )
+        puts "perm #{perm.inspect}"
+      end
+    end
+    puts "target class #{recs.first.class.name}"
+    puts "Our perm is now #{perm.reload.inspect}" unless perm.nil?
+    puts ''
+  end
+
   def check_access_grant( recs, user, klass, op, msg )
 
+    perm_dump( user, recs, nil, 'check_access_grant' )
+    
     assert_equal recs.size, (klass.count_permitting op), msg
 
     assert_equal (recs.sort_by &:id), 
