@@ -35,15 +35,15 @@ module Access
     assign = "#{field}="
     opts[:invalid].each do |val|
       rec.send assign, val
-      assert !rec.valid?, "#{rec.class} with #{field}=#{val} should be invalid"
+      assert !rec.valid?, "#{rec.class} with #{field}=#{val.inspect} should be invalid"
       assert rec.errors.invalid?(field),
-        "#{val} shouldn't be valid for #{rec.class}.#{field}"
+        "#{val.inspect} shouldn't be valid for #{rec.class}.#{field}"
     end
     opts[:valid].each do |val|
       rec.send assign, val
       rec.valid?
       assert !rec.errors.invalid?(field),
-        "#{val} should be valid for #{rec.class}.#{field}" + 
+        "#{val.inspect} should be valid for #{rec.class}.#{field}" + 
         "\n(#{rec.errors[field].inspect})"
     end
   end
