@@ -322,7 +322,7 @@ class AcsFormBuilderTest < Test::Unit::TestCase
                   name="disabled_blog[guarded_bool_false]" type="checkbox" 
                   value="true" 
             /><input name="disabled_blog[guarded_bool_false]" 
-                     type="hidden" />
+                     type="hidden" value="false"/>
         EOD
 
         role.permissions << one_object_perm( :change_guarded, blog )
@@ -339,7 +339,7 @@ class AcsFormBuilderTest < Test::Unit::TestCase
            <input id="blog_guarded_bool_false" name="blog[guarded_bool_false]" 
                   type="checkbox" value="true" 
             /><input name="blog[guarded_bool_false]" 
-                     type="hidden" />
+                     type="hidden" value="false"/>
         EOD
 
       end
@@ -497,7 +497,9 @@ class AcsFormBuilderTest < Test::Unit::TestCase
 
     blog = test_blog
 
-    [:time_zone_select, :country_select].each do |selector|
+    # country_select used to be here, till scrapped with Rails 2.2
+
+    [:time_zone_select].each do |selector|
 
       with_test_role_for_unprivileged_guy do |user, role|
 

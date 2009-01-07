@@ -41,7 +41,7 @@ module Access
 
       OTHER_FORM_HELPERS = 
         %w(check_box radio_button 
-           select country_select collection_select time_zone_select)
+           select collection_select time_zone_select)
 
       JUNK_METHODS = %w(fields_for error_message_on error_messages
                         apply_form_for_options! label submit)
@@ -120,9 +120,6 @@ module Access
 
         klass.wrap_form_helper_for_permissions 'time_zone_select',
           'attr, priority_zones = nil, options = {}, html_options = {}'
-
-        klass.wrap_form_helper_for_permissions 'country_select',
-          'attr, priority_countries = nil, options = {}, html_options = {}'
 
         klass.wrap_form_helper_for_permissions 'collection_select', 
           'attr, collection, value_attr, text_attr, opts={}, html_options={}',
