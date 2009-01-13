@@ -58,7 +58,7 @@ module Access
             args.gsub(/\s*=[^,]*,/, ',').gsub(/\s*=[^,]*$/, '')
           code = <<-EOV
             def #{helper_name} (#{args})
-              if @object.permits_update_attr?( attr )
+              if @object.permits_update_attr?( attr.to_sym )
                 #{wrapped_helper_name}( #{args_without_inits} )
               else
                 inp_flag = @options[:if_not_permitted] || :disable
