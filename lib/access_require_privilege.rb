@@ -543,10 +543,11 @@ module Access
           if !priv.is_a?( Array )
             klass = self
           else
-            association = class_for_associate( priv.last )
+            klass = class_for_associate( priv.last )
             priv = priv.first
           end
 
+          klass.check_user_set!( user, priv, nil )
           return false unless user.could_ever?( priv, klass )
         end
 
@@ -560,6 +561,7 @@ module Access
           if !column_desc.null
             klass      = class_for_associate( assoc.name )
             assoc_priv = klass.associate_privilege( self.name, assoc.name )
+            klass.check_user_set!( user, assoc_priv, nil )
             return false if !assoc_priv.nil? && 
                             !user.could_ever?( assoc_priv, klass )
           end

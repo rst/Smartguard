@@ -360,6 +360,12 @@ class RequirePermTest < Test::Unit::TestCase
 
     end
 
+    # Lastly, test that we get a permission failure, and not some
+    # random NPE-ish crud, when User.current is unset..
+
+    assert_nil User.current
+    assert_raise( PermissionFailure ) { PhonyReqPermEntry.permits_create? }
+
   end
 
   def test_on_associated

@@ -228,6 +228,14 @@ module Access
 
       end
 
+      def check_user_set!(user, priv, associate) # :nodoc:
+        if user.nil?
+          raise PermissionFailure.new("Not authorized to #{priv} because " +
+                                      "current user is not set", 
+                                      :privilege => priv, :target => associate)
+        end
+      end
+
       def permits_for_id?( priv, id ) # :nodoc:
 
         sql = 
@@ -383,11 +391,7 @@ module Access
     private
 
     def check_user_set!(user, priv, associate)
-      if user.nil?
-        raise PermissionFailure.new("Not authorized to #{priv} because " +
-                                    "current user is not set", 
-                                    :privilege => priv, :target => associate)
-      end
+      self.class.check_user_set!(user, priv, associate)
     end
 
     def disassemble_priv( priv )  # :nodoc:
