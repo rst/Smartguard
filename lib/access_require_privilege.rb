@@ -722,7 +722,7 @@ module Access
       # named by a symbol, e.g. blog.permits_update_attr?( :name )
 
       def permits_update_attr?( attr, user = User.current )
-        priv = update_attr_privilege( attr )
+        priv = set_attr_privilege( attr )
         return priv.nil? || self.permits?( priv, user )
       end
 
@@ -902,6 +902,32 @@ module Access
         
       end
 
+      # Support reflection
+
+      # Returns the privilege (if any) needed to initialize attribute
+      # attr_name (as a symbol)
+
+      def initialize_attr_privilege( attr_name )
+        self.class.reflected_privilege( :initialize_attribute, attr_name )
+      end
+
+      # Returns the privilege (if any) needed to update attribute
+      # attr_name (as a symbol)
+
+      def update_attr_privilege( attr_name )
+        self.class.reflected_privilege( :update_attribute, attr_name )
+      end
+
+      # Returns the privilege (if any) needed to set attribute
+      # attr_name (as a symbol).  For an unsaved object, this is the
+      # same as 'initialize_attr_privilege'; for a saved object, it
+      # is the same as 'update_attr_privilege'.
+
+      def set_attr_privilege( attr_name )
+        how = self.new_record? ? :initialize_attribute : :update_attribute
+        self.class.reflected_privilege( how, attr_name )
+      end
+
       # Add permissions checks to some innards...
 
       private
@@ -933,18 +959,13 @@ module Access
         super
       end
 
-      def update_attr_privilege( attr_name )
-        how = self.new_record? ? :initialize_attribute : :update_attribute
-        self.class.reflected_privilege( how, attr_name )
-      end
-
       def check_attr_write_permission!( attr_name, new_value )
 
         old_value = read_attribute( attr_name )
 
         return if old_value.to_s == new_value.to_s
 
-        priv = update_attr_privilege( attr_name.to_sym )
+        priv = set_attr_privilege( attr_name.to_sym )
         self.check_permission!( priv ) unless priv.nil?
 
         assoc_name = self.class.reflected_privilege( :fk_for_associate, 

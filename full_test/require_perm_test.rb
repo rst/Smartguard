@@ -667,6 +667,28 @@ class RequirePermTest < Test::Unit::TestCase
 
   end
 
+  def test_update_attr_reflection
+    User.as( users( :lucy )) do
+
+      frob = PhonyWithInitSet.new :owner => users(:lucy), 
+        :owner_firm => firms(:ricardo), :name => 'dummy'
+
+      assert_equal :priv, frob.initialize_attr_privilege( :init_guarded )
+      assert_equal :priv, frob.update_attr_privilege( :update_guarded )
+      assert_nil frob.initialize_attr_privilege( :update_guarded )
+      assert_nil frob.update_attr_privilege( :init_guarded )
+
+      assert_equal :priv, frob.set_attr_privilege( :init_guarded )
+      assert_nil          frob.set_attr_privilege( :update_guarded )
+
+      frob.save!
+
+      assert_nil          frob.set_attr_privilege( :init_guarded )
+      assert_equal :priv, frob.set_attr_privilege( :update_guarded )
+      
+    end
+  end
+
   def test_never_permit
 
     assert_equal Access::RequirePrivilege::DEFAULT_DECLARED_PRIVILEGES, 
@@ -682,10 +704,8 @@ class RequirePermTest < Test::Unit::TestCase
       end
     end
     
-    # Bleah... invoking a private method.
-
     assert_equal :forbidden_operation, 
-      my_phony.send( :update_attr_privilege, :name )
+      my_phony.set_attr_privilege( :name )
 
     assert_raises( ArgumentError ) do
       PhonyNeverPermits.never_permit_anyone :to_access_attribute => :owner_id
