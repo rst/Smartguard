@@ -187,6 +187,21 @@ module Access
       # perform operation :operation.
 
       def where_permits( priv, keyword_args = {} )
+        priv, association = disassemble_priv( priv )
+        if association.nil?
+          return where_permits_internal( priv, keyword_args )
+        else
+          klass = self.class_for_associate(association)
+          fk = self.reflect_on_association(association).primary_key_name.to_s
+          return <<-END_SQL
+                #{table_name}.#{fk} in
+                  (select id from #{klass.table_name} 
+                   where #{klass.where_permits_internal( priv )})
+          END_SQL
+        end
+      end
+
+      def where_permits_internal( priv, keyword_args = {} ) # :nodoc:
 
         if priv == :forbidden_operation
           # ... lest wildcards "allow" it ...
@@ -226,6 +241,66 @@ module Access
             )
         END_SQL
 
+      end
+
+      def disassemble_priv( priv ) # :nodoc:
+        if priv.is_a?( Array )
+          association = priv.last
+          priv = priv.first
+          return priv, association
+        else
+          return priv, nil
+        end
+      end
+
+      # Returns all users with privilege 'priv' on 'obj'
+
+      def users_permitted_to( priv, obj )
+        User.find :all,
+          :conditions => "id in (#{users_permitted_sql( priv, obj )})"
+      end
+
+      # Returns SQL for a select which returns the IDs of all users
+      # which have privilege 'priv' on 'obj', as a string,
+      # "select id from users where...", which is suitable for use
+      # as a subquery, that is...
+      #
+      #   "where users.id in (#{MinMaxList.users_permitted_sql(:update, obj)})"
+
+      def users_permitted_sql( priv, obj )
+
+        (privilege, associate) = obj.send( :disassemble_priv, priv )
+        return 'select id from users where 1 = 2' if associate.nil?
+
+        table = associate.class.table_name
+        owner_id_attr = associate.class.owner_access_control_key
+        self_owner_cond = owner_id_attr.nil? ? '1 = 2' : 
+          "#{table}.#{owner_id_attr} = users.id"
+
+        keys = { 
+          :false      => false,
+          :privilege  => privilege.to_s,
+          :class_name => associate.class.name,
+        }
+
+        return sanitize_sql( [ <<-END_SQL, keys ] )
+         select users.id 
+         from users, roles, permissions p, #{table}
+         where roles.id in
+                 (select id from roles
+                  start with roles.id in
+                      (select role_id from role_assignments
+                       where user_id = users.id
+                       and #{RoleAssignment.current_sql_condition})
+                  connect by prior roles.parent_role_id = roles.id)
+          and (p.role_id    = roles.id)
+          and (p.privilege  = :privilege or p.privilege = 'any')
+          and (p.class_name = :class_name)
+          and (p.is_grant   = :false)
+          and (#{table}.id  = #{associate.id})
+          and (p.target_owned_by_self = :false or #{self_owner_cond})
+          and #{associate.class.permission_grant_conditions}
+        END_SQL
       end
 
       def check_user_set!(user, priv, associate) # :nodoc:
@@ -334,6 +409,24 @@ module Access
       (priv, associate) = disassemble_priv( priv )
       check_user_set!(user, priv, associate)
       user.can?( priv, associate )
+    end
+
+    # Returns all users with privilege 'priv' on this object
+
+    def users_permitted_to( priv )
+      sql = self.class.users_permitted_sql( priv, self )
+      User.find :all, :conditions => "id in (#{sql})"
+    end
+
+    # Returns SQL for a select which returns the IDs of all users
+    # which have privilege 'priv' on 'obj', as a string,
+    # "select id from users where...", which is suitable for use
+    # as a subquery, that is...
+    #
+    #   "where users.id in (#{my_list.users_permitted_sql(:update)})"
+
+    def users_permitted_sql( priv )
+      self.class.users_permitted_sql( priv, self )
     end
 
     # Throws a PermissionFailure exception if the user

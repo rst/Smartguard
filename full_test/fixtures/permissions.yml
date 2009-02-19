@@ -2,7 +2,7 @@ mertz_admin_post_create:
   id:           1
   role_id:      1            # mertz_admin
   privilege:    create
-  class_name:   BlogPost
+  class_name:   BlogEntry
   is_grant:         false
   has_grant_option: false
   target_owned_by_self: true
@@ -12,8 +12,8 @@ mertz_admin_post_create:
 mertz_admin_post_delete:
   id:           2
   role_id:      1            # mertz_admin
-  privilege:    delete
-  class_name:   BlogPost
+  privilege:    destroy
+  class_name:   BlogEntry
   is_grant:         false
   has_grant_option: false
   target_owned_by_self: true

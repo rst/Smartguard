@@ -757,4 +757,81 @@ class RequirePermTest < Test::Unit::TestCase
 
   end
 
+  # Testing where_permits_action and where_permits_update_attr ---
+  # simple cases.
+
+  def test_where_permits_action
+    User.as( users( :fred )) do
+      assert_equal PhonyWithEponymous.where_permits( :create ),
+        PhonyWithEponymous.where_permits_action( :create )
+      assert_equal '1 = 1', PhonyNoPerms.where_permits_action( :create )
+    end
+  end
+
+  def test_where_permits_update_attr
+    User.as( users( :fred )) do
+      assert_equal PhonyWithInitSet.where_permits( :priv ),
+        PhonyWithInitSet.where_permits_update_attr( :update_guarded )
+      assert_equal '1 = 1',       
+        PhonyWithInitSet.where_permits_update_attr( :init_guarded )
+    end
+  end
+
+  # Testing where_permits_action and where_permits_update_attr ---
+  # complex cases, involving :on_associated.  Here the SQL comes
+  # from a new and funky variant of where_permits, so we actually
+  # have to explicitly check that it does the right thing.
+
+  def test_where_permits_associated
+
+    my_entry = nil
+    blog = blogs(:mertz_blog)
+    owner = blog.owner
+    other_user = users(:lucy)
+    
+    assert other_user != owner  # 'owner' is really fred; just checking...
+
+    with_permission( wildcard_perm( :change_post, Blog )) do
+      my_entry = BlogEntry.create! :blog => blog, :entry_txt => 'foo',
+        :owner => blog.owner, :owner_firm => blog.owner_firm
+    end
+
+    check_permits_both_ways( owner, other_user ) do | should_it, who |
+      assert_access_query_correct(should_it, my_entry, "#{who} upd txt") do
+        BlogEntry.find :all, 
+          :conditions => BlogEntry.where_permits_update_attr( :entry_txt )
+      end
+    end
+
+    check_permits_both_ways( owner, other_user ) do | should_it, who |
+      assert_access_query_correct(should_it, my_entry, "#{who} destroy") do
+        BlogEntry.find :all, 
+          :conditions => BlogEntry.where_permits_action( :destroy )
+      end
+    end
+
+  end
+
+  def check_permits_both_ways( owner, other_user )
+
+    with_permission( owner_perm( :change_post, Blog, owner )) do
+      yield( true, "owner" )
+    end
+    
+    with_permission( owner_perm( :change_post, Blog, other_user )) do
+      yield( false, "other" )
+    end
+    
+  end
+
+  def assert_access_query_correct( should_it, item, msg )
+    klass = item.class
+    items = yield
+    if should_it
+      assert items.include?( item ), msg
+    else
+      assert !items.include?( item ), msg
+    end
+  end
+
 end

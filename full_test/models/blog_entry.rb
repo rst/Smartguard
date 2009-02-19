@@ -32,7 +32,8 @@ class BlogEntry < ActiveRecord::Base
   has_many :entry_comments
 
   require_privilege :change_post, :on_associated => :blog,
-    :to_set_attribute => :entry_txt
+    :to_set_attribute => :entry_txt,
+    :for_action => [:create, :destroy]
 
   require_privilege :add_comment, 
     :to_associate_as => "EntryComment#blog_entry"

@@ -37,10 +37,27 @@ module Access
       # Returns the text of a SQL condition (suitable for use in a 
       # where clause) which selects records of this class's table
       # on which the user (default: User.current) is permitted to
-      # perform given action
+      # perform the given action
 
       def where_permits_action( action, keyword_args = {} )
         priv = self.callback_privilege( EVENT_CALLBACK_KEYS[ action ] )
+        if priv.nil?
+          return '1 = 1'
+        else
+          return where_permits( priv, keyword_args )
+        end
+      end
+
+      # :call-seq:
+      #   Klass.where_permits_update_attr :action_name[, :user => ...]
+      #
+      # Returns the text of a SQL condition (suitable for use in a 
+      # where clause) which selects records of this class's table
+      # on which the user (default: User.current) is permitted to
+      # update the given attributes
+
+      def where_permits_update_attr( attr_name, keyword_args = {} )
+        priv = self.reflected_privilege( :update_attribute, attr_name )
         if priv.nil?
           return '1 = 1'
         else

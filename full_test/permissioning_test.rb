@@ -331,6 +331,11 @@ class PermissioningTest < Test::Unit::TestCase
   # We create a bunch of objects, determine which subsets we should
   # have permission on from various permissions, and verify that that
   # is what comes out.
+  #
+  # Note that behavior for "compound privileges" --- where_permits
+  # something on an associate --- is tested as part of the tests
+  # for where_permits_action and where_permits_update_attr,
+  # in require_perm_test.
 
   def test_grant_queries
 
@@ -385,6 +390,8 @@ class PermissioningTest < Test::Unit::TestCase
         target_roles.each do |trole|
           assert_grant_queries_work_one_perm :post, luser, trole, 
             perms_set.first, perms_set.last
+          assert_users_permitted_works_one_perm :post, luser, trole, 
+            perms_set.first, perms_set.last, all_my_blogs
         end
       end
 
@@ -485,6 +492,124 @@ class PermissioningTest < Test::Unit::TestCase
     user.permissions :force_reload
 
   end
+
+  # Tests bulk grant permissions going the other way: a role with the
+  # permission 'perm' should list a user with only that permission
+  # as a user_permitted_to if operate on only the given recs,
+  # and no others.
+
+  def assert_users_permitted_works_one_perm( op, user, role, 
+                                             permitted_recs, perm, all_recs )
+
+    # Clear out relevant state
+
+    role.permissions.each do |perm|
+      perm.destroy
+    end
+
+    role = Role.find role.id
+    user = User.find user.id
+    priv = perm.privilege
+    klass = permitted_recs.first.class
+    one_rec = permitted_recs.first
+    
+    # Actually do the work...
+
+    perm = perm.clone           # work on a scratch copy
+    perm.role = role
+    perm.save!
+
+    # Access blocking tweaks should keep our user from access
+
+    with_access_blocking_tweaks( perm ) do |msg|
+      assert !klass.users_permitted_to( priv, one_rec ).include?( user ), "blocking access with #{msg}"
+    end
+
+    with_access_granting_tweaks( perm ) do 
+
+      if !user.role_assignments.find( :first, 
+                                      :conditions => { :role_id => role })
+
+        check_users_permitted_by_grant(klass, priv, user,
+                                       all_recs, permitted_recs)
+
+      else
+
+        # Likewise expired role assignment, if role assignment is direct.
+
+        with_expired_role_assignment( user, role ) do
+          assert !klass.users_permitted_to( priv, one_rec ).include?( user )
+        end
+
+        # But current role assignment should do the job
+
+        with_current_role_assignment( user, role ) do
+          check_users_permitted_by_grant( klass, priv, user,
+                                          all_recs, permitted_recs)
+        end
+
+      end
+
+    end
+
+    perm.destroy
+    user.permissions( :force_reload )
+    
+  end
+
+  def check_users_permitted_by_grant( klass, priv, user, 
+                                      all_recs, permitted_recs )
+    all_recs.each do |rec|
+      if permitted_recs.include?( rec )
+        assert klass.users_permitted_to( priv, rec ).include?( user )
+      else
+        assert !klass.users_permitted_to( priv, rec ).include?( user )
+      end
+    end
+  end
+
+  # Tests for users_permitted_to in the presence of as_associated.
+  # In this case, it just turns into a variety of where_permits,
+  # so this is easy...
+
+  def test_users_permitted_to_on_associated
+    with_permission( wildcard_perm( :change_post, Blog )) do
+
+      blog = blogs(:mertz_blog)
+      my_entry = BlogEntry.create! :blog => blog, :entry_txt => 'foo',
+        :owner => blog.owner, :owner_firm => blog.owner_firm
+
+      priv = my_entry.update_attr_privilege( :entry_txt )
+
+      assert_equal Blog.users_permitted_sql( :change_post, blog ),
+        BlogEntry.users_permitted_sql( priv, my_entry )
+
+    end
+  end
+
+  # Test instance-method users_permitted_to, and users_permitted_sql
+
+  def test_users_permitted_instance_methods
+
+    with_permission( wildcard_perm( :change_post, Blog )) do
+
+      blog = blogs(:mertz_blog)
+      my_entry = BlogEntry.create! :blog => blog, :entry_txt => 'foo',
+        :owner => blog.owner, :owner_firm => blog.owner_firm
+
+      assert_equal BlogEntry.users_permitted_sql( :destroy, my_entry ),
+        my_entry.users_permitted_sql( :destroy )
+      
+      changers = my_entry.users_permitted_to( :destroy )
+
+      assert  changers.include?( users(:fred) )
+      assert !changers.include?( users(:ricky) )
+
+    end
+
+  end
+
+  # Utility routine
 
   def perm_dump( user, recs, perm, foo )
     return
