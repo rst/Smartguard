@@ -575,7 +575,13 @@ module Access
           foreign_key = assoc.primary_key_name.to_s # sigh...
           column_desc = columns.detect { |col| col.name == foreign_key }
 
-          if !column_desc.nil?
+          # If the column is a foreign key with a NOT NULL constraint,
+          # and permissions are required to set up the association,
+          # make sure we could conceivably set it up.
+          #
+          # If the foreign key could be null, we don't need this check.
+
+          if !column_desc.null  # null, yes, null.  NOT nil?
             klass      = class_for_associate( assoc.name )
             assoc_priv = klass.associate_privilege( self.name, assoc.name )
             klass.check_user_set!( user, assoc_priv, nil )
