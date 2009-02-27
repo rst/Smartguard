@@ -101,7 +101,7 @@ module Access
 
         klass.wrap_form_helper_for_permissions 'check_box',
           'attr, html_options = {}, checked_value="1", unchecked_value="0"',
-          '(val == checked_value)? CHECKMARK : ""'
+          '(val == checked_value || val.to_s == checked_value)? CHECKMARK : ""'
 
         klass.wrap_form_helper_for_permissions 'radio_button',
           'attr, tag_value, html_options = {}',
