@@ -284,10 +284,10 @@ class AcsFormBuilderTest < Test::Unit::TestCase
                  :builder => Access::Sensitive::FormBuilder,
                  :if_not_permitted => :present_text do |f|
 
-        with_attr( blog, :guarded_number, 1) do
+        with_attr( blog, :guarded_number, "1" ) do
           assert_equal CHECKMARK, f.check_box( :guarded_number )
         end
-        with_attr( blog, :guarded_number, 0 ) do
+        with_attr( blog, :guarded_number, "0" ) do
           assert_equal '', f.check_box( :guarded_number, {}, true, false )
         end
 

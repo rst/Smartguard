@@ -99,11 +99,8 @@ module Access
             'attr, html_options = {}'
         end
 
-        # Sigh... defaults here not quoted strings (differing from
-        # base Rails behavior) to avoid type_cast crud...
-
         klass.wrap_form_helper_for_permissions 'check_box',
-          'attr, html_options = {}, checked_value=1, unchecked_value=0',
+          'attr, html_options = {}, checked_value="1", unchecked_value="0"',
           '(val == checked_value)? CHECKMARK : ""'
 
         klass.wrap_form_helper_for_permissions 'radio_button',
