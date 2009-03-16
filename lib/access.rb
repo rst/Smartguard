@@ -59,6 +59,45 @@ module Access
 
   module Controlled
 
+    # The usual hook for ClassMethods...
+
+    def self.included( klass )  # :nodoc:
+
+      klass.extend ClassMethods
+
+      # Set up inheritable attributes for basic privilege checks.
+
+      klass.class_inheritable_accessor :sg_access_control_keys,
+        :instance_writer => false
+      klass.class_inheritable_accessor :sg_owner_access_control_key,
+        :instance_writer => false
+
+      # Set up inheritable attributes for require_privilege, etc.
+      
+      klass.class_inheritable_reader :declared_privileges
+      klass.class_inheritable_accessor :attribute_block_set_groups,
+        :instance_writer => false
+      klass.class_inheritable_accessor :sg_reflected_privileges
+      klass.class_inheritable_reader :sg_deferred_permission_wrappers
+
+      # And set up defaults for some of these, in base classes only.
+      # (Don't re-set-up defaults if they're being inherited!)
+
+      if klass.declared_privileges.nil?
+
+        klass.write_inheritable_array :declared_privileges,
+          Access::RequirePrivilege::DEFAULT_DECLARED_PRIVILEGES 
+        klass.attribute_block_set_groups = [['owner', 'owner_id']]
+        klass.write_inheritable_attribute( :sg_reflected_privileges, {} )
+
+        # Any reason to *ever* allow this?
+
+        klass.never_permit_anyone :to_update_attribute => :id
+
+      end
+
+    end
+
     module ClassMethods
 
       # Sole argument is an array of strings that name attributes that
@@ -70,21 +109,24 @@ module Access
       # with a corresponding column in the 'permissions' table.
 
       def declare_access_control_keys( *ack_list )
-        ack_list = ack_list.collect( &:to_s )
-        instance_eval <<-EOF
-          def self.access_control_keys; #{ack_list.inspect}; end
-        EOF
+        self.sg_access_control_keys = ack_list
       end
 
       def access_control_keys   # :nodoc:
-        # Defaults
-        if @all_acks.nil?
-          @all_acks = []
-          @all_acks <<= 'id'
-          owner_ack = self.owner_access_control_key
-          @all_acks << owner_ack unless (owner_ack.nil? || owner_ack == 'id')
-        end
-        @all_acks
+
+        acks = self.sg_access_control_keys
+        return acks unless self.sg_access_control_keys.nil?
+
+        # Not explicitly set.  Implement default behavior...
+
+        all_acks = []
+        all_acks <<= 'id'
+        owner_ack = self.owner_access_control_key
+        all_acks << owner_ack unless (owner_ack.nil? || owner_ack == 'id')
+        self.sg_access_control_keys = all_acks
+
+        return all_acks
+
       end
 
       # Argument is a string naming the access key attribute 
@@ -98,15 +140,20 @@ module Access
       # rights on their passwords, prefs, etc.
 
       def declare_owner_access_control_key( ack )
-        ack = ack.to_s unless ack.nil?
-        instance_eval <<-EOF
-          def self.owner_access_control_key; #{ack.inspect}; end
-        EOF
+        self.sg_owner_access_control_key = ack
       end
 
       def owner_access_control_key # :nodoc:
+
+        ack = self.sg_owner_access_control_key
+        return ack unless ack.nil?
+
         # Default behavior
-        @owner_ack ||= column_names.include?('owner_id')? 'owner_id' : nil
+        self.sg_owner_access_control_key = 
+          column_names.include?('owner_id')? 'owner_id' : nil
+
+        return self.sg_owner_access_control_key
+
       end
 
       # :call-seq:
@@ -220,7 +267,7 @@ module Access
         keys = { 
           :user       => user,
           :privilege  => priv.to_s,
-          :class_name => self.name,
+          :class_name => sg_base_class_name,
           :false      => false,
         }
 
@@ -383,17 +430,17 @@ module Access
       end
 
       include Access::RequirePrivilege::ClassMethods
+
+      # Memoized versions of base_class and base_class.name
+
+      def sg_base_class_name    # :nodoc:
+        @sg_base_class_name ||= self.base_class.name
+      end
+
+      def sg_base_class         # :nodoc:
+        @sg_base_class ||= self.base_class
+      end
       
-    end
-
-    # The usual hook for ClassMethods...
-
-    def self.included( klass )  # :nodoc:
-      klass.extend ClassMethods
-
-      # Any reason to *ever* allow this?
-
-      klass.never_permit_anyone :to_update_attribute => :id
     end
 
     include Access::RequirePrivilege::InstanceMethods

@@ -155,7 +155,7 @@ module SmartguardBasicUser
 
     return false if privilege == :forbidden_operation # lest wildcards allow it
 
-    class_name  = obj.class.name
+    class_name  = obj.class.sg_base_class_name
     class_perms = perms_sorted[class_name] || {}
 
     (class_perms[privilege] || []).each do |perm|

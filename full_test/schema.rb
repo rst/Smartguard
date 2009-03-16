@@ -116,4 +116,20 @@ ActiveRecord::Schema.define(:version => 1) do
     t.datetime "updated_at",                              :null => false
   end
 
+  create_table "reports", :force => true do |t|
+    t.string   "name",          :limit => 100, :null => false
+    t.string   "type",          :limit => 100, :null => false
+    t.integer  "owner_id",                     :null => false
+    t.integer  "owner_firm_id",                :null => false
+    t.integer  "guarded_int"
+    t.datetime "created_at",                   :null => false
+    t.datetime "updated_at",                   :null => false
+  end
+
+  create_table "line_items", :force => true do |t|
+    t.integer  "report_id",                    :null => false
+    t.integer  "derived_report_id"
+    t.string   "type",          :limit => 100, :null => false
+  end
+
 end

@@ -1,0 +1,2 @@
+:on_associate for where_permits, where_permits_update_attr
+TESTS for users_permitted_sql

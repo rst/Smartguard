@@ -84,19 +84,10 @@ module Access
               "Attempt to declare #{arg.inspect}, not a symbol, " +
               "as a privilege"
           end
-          @declared_privileges ||= DEFAULT_DECLARED_PRIVILEGES.dup
-          @declared_privileges << arg unless 
-              @declared_privileges.include? arg
+          unless declared_privileges.include?( arg )
+            write_inheritable_array( :declared_privileges, [arg] )
+          end
         end
-      end
-
-      # Returns an array of operations (as symbols) which have
-      # been declared as permissioned operations for this class,
-      # via declare_permission or require_privilege
-
-      def declared_privileges
-        @declared_privileges ||= DEFAULT_DECLARED_PRIVILEGES.dup
-        @declared_privileges
       end
 
       # :call-seq:
@@ -456,17 +447,18 @@ module Access
         reflection = self.reflect_on_association( assoc_name )
         fk = reflection.primary_key_name.to_sym
 
-        set_reflected_privilege( :fk_for_associate, fk, assoc_name.to_sym )
-
         setter_method     = (assoc_name.to_s + '=').to_sym
         old_setter_method = (assoc_name.to_s + '_without_assoc_chks=').to_sym
         alias_method old_setter_method, setter_method
 
-        rec_class_name = self.name
+        set_reflected_privilege( :fk_for_associate, fk, assoc_name.to_sym )
+        set_reflected_privilege( :klass_for_associate, assoc_name.to_sym,
+                                 self.name )
 
         define_method setter_method do |arg|
 
           klass = self.class.class_for_associate(assoc_name)
+          rec_class_name = self.class.base_class_for_associate(assoc_name)
           
           if !klass.respond_to?( :associate_privilege )
             return( send old_setter_method, arg )
@@ -493,6 +485,7 @@ module Access
         self.before_destroy do |rec|
 
           klass = class_for_associate(assoc_name)
+          rec_class_name = rec.class.base_class_for_associate(assoc_name)
 
           if !klass.respond_to?( :associate_privilege )
             true
@@ -528,13 +521,11 @@ module Access
       # published flag itself, followed by the ordinary attributes).
 
       def declare_attribute_block_set_groups( *groups )
-        instance_eval <<-EOF
-          def self.attribute_block_set_groups; #{groups.inspect}; end
-        EOF
+        self.attribute_block_set_groups = groups
       end
 
       def attribute_block_set_groups # :nodoc:
-        [['owner', 'owner_id']]
+        read_inheritable_attribute( :attribute_block_set_groups )
       end
 
       # Returns true if the user could ever create an object
@@ -582,8 +573,9 @@ module Access
           # If the foreign key could be null, we don't need this check.
 
           if !column_desc.null  # null, yes, null.  NOT nil?
-            klass      = class_for_associate( assoc.name )
-            assoc_priv = klass.associate_privilege( self.name, assoc.name )
+            klass = class_for_associate( assoc.name )
+            assoc_base_klass = base_class_for_associate( assoc.name )
+            assoc_priv = klass.associate_privilege( assoc_base_klass, assoc.name )
             klass.check_user_set!( user, assoc_priv, nil )
             return false if !assoc_priv.nil? && 
                             !user.could_ever?( assoc_priv, klass )
@@ -605,6 +597,10 @@ module Access
           reflections[assoc_name].class_name.constantize
       end
 
+      def base_class_for_associate( assoc_name ) # :nodoc:
+        reflected_privilege( :klass_for_associate, assoc_name.to_sym )|| self.name
+      end
+
       def associate_privilege( foreign_class_name, association_name ) # :nodoc:
         reflected_privilege( :associate,
                              foreign_class_name + '#' + association_name.to_s )
@@ -624,13 +620,12 @@ module Access
       end
 
       def reflected_privilege( type, key ) # :nodoc:
-        @reflected_privileges ||= reflected_priv_defaults
-        @reflected_privileges[type][key]
+        sg_reflected_privileges[[type,key]]
       end
 
       def association_access_control_keys
-        @reflected_privileges ||= reflected_priv_defaults
-        @reflected_privileges[:fk_for_associate].keys
+        sg_reflected_privileges.keys.select{|k| k.first == :fk_for_associate }.
+          collect{ |k| k.second }
       end
 
       private
@@ -646,10 +641,10 @@ module Access
       end
       
       def set_reflected_privilege( type, key, new_value )
-        @reflected_privileges ||= reflected_priv_defaults
-        old_value = @reflected_privileges[type][key]
+        k = [type, key]
+        old_value = sg_reflected_privileges[k]
         if old_value.nil?
-          @reflected_privileges[type][key] = new_value
+          write_inheritable_hash( :sg_reflected_privileges, { k => new_value })
         elsif new_value != old_value
           raise ArgumentError,
             "Declaring #{new_value.inspect} as reflected privilege for " +
@@ -657,37 +652,32 @@ module Access
         end
       end
 
-      def reflected_priv_defaults
-        return { 
-          :associate            => {}, 
-          :dissociate           => {},
-          :initialize_attribute => {},
-          :update_attribute     => {},
-          :read_attribute       => {},
-          :fk_for_associate     => {},
-          :at_callback          => {}
-        }
-      end
-
       def wrap_now_or_later( meth_name, wrapper_code )
         if self.method_defined?( meth_name )
           wrap_method meth_name, wrapper_code
         else
-          @deferred_permission_wrappers ||= {}
-          @deferred_permission_wrappers[meth_name] = wrapper_code
+          write_inheritable_hash( :sg_deferred_permission_wrappers,
+                                  meth_name => wrapper_code )
         end
       end
 
       def method_added( meth_name )
 
-        return if @deferred_permission_wrappers.nil?
+        wrappers = read_inheritable_attribute :sg_deferred_permission_wrappers 
+        return if wrappers.nil?
 
-        # Note that we begin by deleting the deferred handler, if
-        # any, from @deferred_permission_wrappers *before* attempting
-        # to wrap the newly defined method.  This avoids infinite
-        # recursion when wrap_method redefines it.
+        # Note that the wrapper code redefines the method, so
+        # the following rigamarole is needed to guard against
+        # infinite recursion...
 
-        wrapper_handler = @deferred_permission_wrappers.delete( meth_name )
+        @sg_deferred_wrappers_installed ||= []
+        return if @sg_deferred_wrappers_installed.include?( meth_name )
+        @sg_deferred_wrappers_installed << meth_name
+
+        # OK, haven't *already* done the wrap thing for this method.
+        # So, if it does have a declared wrapper, install it.
+
+        wrapper_handler = wrappers[ meth_name ]
         wrap_method meth_name, wrapper_handler if !wrapper_handler.nil?
 
       end
@@ -778,7 +768,8 @@ module Access
 
         self.class.reflect_on_all_associations( :belongs_to ).each do |assoc|
           klass = self.class.class_for_associate( assoc.name )
-          dissoc_priv = klass.dissociate_privilege(self.class.name, assoc.name)
+          base_klass = self.class.base_class_for_associate( assoc.name )
+          dissoc_priv = klass.dissociate_privilege( base_klass, assoc.name )
           if !dissoc_priv.nil?
             associate = self.send assoc.name
             if !associate.nil?
@@ -878,7 +869,8 @@ module Access
 
         # Next, add check for :to_associate privilege, if any
 
-        assoc_priv = klass.associate_privilege( self.class.name, assoc_name )
+        rec_class_name = self.class.base_class_for_associate(assoc_name)
+        assoc_priv = klass.associate_privilege( rec_class_name, assoc_name )
         
         unless assoc_priv.nil?
           sql_conds << klass.where_permits( assoc_priv, user )
@@ -1023,9 +1015,10 @@ module Access
               end
             end
 
-            assoc_prv  = klass.associate_privilege( self.class.name, 
+            rec_class_name = self.class.base_class_for_associate(assoc_name)
+            assoc_prv  = klass.associate_privilege( rec_class_name, 
                                                     assoc_name )
-            dissoc_prv = klass.dissociate_privilege( self.class.name, 
+            dissoc_prv = klass.dissociate_privilege( rec_class_name, 
                                                      assoc_name )
 
             check_foreign_priv.call( dissoc_prv, old_value )

@@ -108,6 +108,9 @@ module SmartguardBasicPermission
       klass = class_name.constantize
       if !klass.respond_to?( :declared_privileges )
         errors.add :class_name, "is not the name of an access-controlled class"
+      elsif klass != klass.base_class
+        errors.add :class_name, 
+          "has STI base #{klass.base_class}; permissions must attach to that"
       else
         privileges = class_name.constantize.declared_privileges
         if !privileges.include?( privilege ) && privilege != :any
@@ -159,7 +162,7 @@ module SmartguardBasicPermission
       return
     end
 
-    if obj.class.name != self.class_name
+    unless obj.is_a?( self.target_class )
       raise ArgumentError, "#{obj.class.name} was not a #{self.class_name}"
     end
 
@@ -173,7 +176,7 @@ module SmartguardBasicPermission
 
   def allows?( obj, priv, user )
 
-    return false if obj.class.name != self.class_name
+    return false if obj.class.sg_base_class_name != self.class_name
     return false if self.privilege != :any && self.privilege != priv
     return false if self.is_grant
     return allows_internal?( obj, user )

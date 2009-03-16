@@ -69,7 +69,8 @@ class Test::Unit::TestCase #:nodoc:
   # Plugin-specific test helpers below here:
 
   def self.use_all_fixtures
-    fixtures :firms, :role_assignments, :users, :roles, :permissions, :blogs
+    fixtures :firms, :role_assignments, :users, :roles, :permissions, :blogs,
+             :reports
   end
 
   include Access::TestHelpers
@@ -77,7 +78,7 @@ class Test::Unit::TestCase #:nodoc:
   # Returns a Permission granting 'privilege' on any object of class 'klass'
   # whose owner_firm is set to 'firm'.
 
-  def owner_firm_perm privilege, klass, firm
+  def owner_firm_perm( privilege, klass, firm )
     Permission.new( :privilege    => privilege,
                     :class_name   => klass.name,
                     :is_grant     => false,
@@ -86,6 +87,12 @@ class Test::Unit::TestCase #:nodoc:
                     :target_owner_firm => firm
                     )
     
+  end
+
+  # Returns a Permission granting 'privilege' on all objects of class 'klass'
+
+  def wildcard_perm( privilege, klass )
+    owner_firm_perm( privilege, klass, nil )
   end
 
 end

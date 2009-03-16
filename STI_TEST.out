@@ -1,0 +1,110 @@
+-- create_table("blog_entries", {:force=>true})
+   -> 0.6228s
+   -> 0 rows
+-- add_index("blog_entries", ["owner_firm_id"], {:name=>"blog_entries_by_firm"})
+   -> 0.0100s
+   -> 0 rows
+-- add_index("blog_entries", ["owner_id"], {:name=>"blog_entries_by_owner"})
+   -> 0.0895s
+   -> 0 rows
+-- create_table("blogs", {:force=>true})
+   -> 0.3444s
+   -> 0 rows
+-- add_index("blogs", ["owner_firm_id"], {:name=>"blogs_by_firm"})
+   -> 0.0091s
+   -> 0 rows
+-- add_index("blogs", ["owner_id"], {:name=>"blogs_by_owner"})
+   -> 0.0112s
+   -> 0 rows
+-- add_index("blogs", ["name", "owner_firm_id"], {:name=>"ix_blogs_by_name_owner_firm", :unique=>true})
+   -> 0.0091s
+   -> 0 rows
+-- create_table("entry_comments", {:force=>true})
+   -> 0.4745s
+   -> 0 rows
+-- add_index("entry_comments", ["owner_firm_id"], {:name=>"entry_comments_by_firm"})
+   -> 0.1037s
+   -> 0 rows
+-- add_index("entry_comments", ["owner_id"], {:name=>"entry_comments_by_owner"})
+   -> 0.0092s
+   -> 0 rows
+-- create_table("firms", {:force=>true})
+   -> 0.2648s
+   -> 0 rows
+-- create_table("pcheck_log_entries", {:force=>true})
+   -> 0.2870s
+   -> 0 rows
+-- create_table("permissions", {:force=>true})
+   -> 0.2916s
+   -> 0 rows
+-- add_index("permissions", ["role_id"], {:name=>"index_permissions_on_role_id"})
+   -> 0.0094s
+   -> 0 rows
+-- create_table("request_log_entries", {:force=>true})
+   -> 0.2678s
+   -> 0 rows
+-- create_table("role_assignments", {:force=>true})
+   -> 0.2870s
+   -> 0 rows
+-- create_table("roles", {:force=>true})
+   -> 0.3568s
+   -> 0 rows
+-- add_index("roles", ["owner_firm_id"], {:name=>"roles_by_firm"})
+   -> 0.0905s
+   -> 0 rows
+-- add_index("roles", ["owner_id"], {:name=>"roles_by_owner"})
+   -> 0.0102s
+   -> 0 rows
+-- create_table("users", {:force=>true})
+   -> 0.3294s
+   -> 0 rows
+-- create_table("reports", {:force=>true})
+   -> 0.1828s
+   -> 0 rows
+-- initialize_schema_migrations_table()
+   -> 0.0866s
+-- assume_migrated_upto_version(1)
+   -> 0.0011s
+============= Report wraps id= after [:id=]
+============= Report wraps base_method after [:id=, :base_method]
+============= BillingReport wraps derived_method after [:derived_method]
+============= ActivityReport wraps derived_method after [:derived_method]
+============= Firm wraps id= after [:id=]
+============= RoleAssignment wraps id= after [:id=]
+============= User wraps id= after [:id=]
+============= Role wraps id= after [:id=]
+role ack groups [["owner", "owner_id", "owner_firm", "owner_firm_id"]]
+============= Permission wraps id= after [:id=]
+============= Blog wraps id= after [:id=]
+============= Report wraps base_method after [:id=, :base_method, :base_method]
+Loaded suite full_test/sti_test
+Started
+============= Role wraps parent_role_id= after [:id=, :parent_role_id=]
+============= Role wraps owner_firm_id= after [:id=, :parent_role_id=, :owner_firm_id=]
+============= Role wraps owner_id= after [:id=, :parent_role_id=, :owner_firm_id=, :owner_id=]
+============= User wraps name= after [:id=, :name=]
+============= RoleAssignment wraps role_id= after [:id=, :role_id=]
+============= RoleAssignment wraps user_id= after [:id=, :role_id=, :user_id=]
+============= BillingReport wraps name= after [:derived_method, :name=]
+============= BillingReport wraps owner_firm_id= after [:derived_method, :name=, :owner_firm_id=]
+============= BillingReport wraps owner_id= after [:derived_method, :name=, :owner_firm_id=, :owner_id=]
+============= ActivityReport wraps name= after [:derived_method, :name=]
+============= ActivityReport wraps owner_firm_id= after [:derived_method, :name=, :owner_firm_id=]
+============= ActivityReport wraps owner_id= after [:derived_method, :name=, :owner_firm_id=, :owner_id=]
+...F.
+Finished in 1.11285 seconds.
+
+  1) Failure:
+test_inherited_permissions(StiTest)
+    [./full_test/../lib/access_test_helpers.rb:167:in `assert_requires'
+     ./full_test/../lib/access_test_helpers.rb:101:in `with_test_role_for_unprivileged_guy'
+     ./full_test/../lib/smartguard_basic_user.rb:79:in `as'
+     ./full_test/../lib/access_test_helpers.rb:100:in `with_test_role_for_unprivileged_guy'
+     ./full_test/../lib/access_test_helpers.rb:160:in `assert_requires'
+     full_test/sti_test.rb:71:in `test_inherited_permissions'
+     ./full_test/../../../rails/activesupport/lib/active_support/testing/setup_and_teardown.rb:60:in `__send__'
+     ./full_test/../../../rails/activesupport/lib/active_support/testing/setup_and_teardown.rb:60:in `run']:
+Should fail with no grants at all.
+<PermissionFailure> exception expected but none was thrown.
+
+5 tests, 55 assertions, 1 failures, 0 errors

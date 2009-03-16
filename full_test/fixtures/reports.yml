@@ -1,0 +1,25 @@
+mertz_billing_report:
+  id:            1
+  name:          "mertz billing report"
+  type:          BillingReport
+  owner_id:      1   #fred
+  owner_firm_id: 4   #mertz
+ricardo_billing_report:
+  id:            2
+  name:          "ricardo billing report"
+  type:          BillingReport
+  owner_id:      4   #ricky
+  owner_firm_id: 3   #ricardo
+mertz_activity_report:
+  id:            3
+  name:          "mertz activity report"
+  type:          ActivityReport
+  owner_id:      1   #fred
+  owner_firm_id: 4   #mertz
+ricardo_activity_report:
+  id:            4
+  name:          "ricardo activity report"
+  type:          ActivityReport
+  owner_id:      4   #ricky
+  owner_firm_id: 3   #ricardo
+
