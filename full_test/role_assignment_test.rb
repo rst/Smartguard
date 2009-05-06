@@ -25,11 +25,6 @@ class RoleAssignmentTest < Test::Unit::TestCase
 
   use_all_fixtures
 
-  def test_bogon
-    ra = RoleAssignment.new
-    ra.id = 3
-  end
-
   def test_validations
 
     ra = RoleAssignment.new
@@ -63,6 +58,19 @@ class RoleAssignmentTest < Test::Unit::TestCase
       assert_raises(PermissionFailure) { ra.user_id = users(:lucy).id }
       
     end
+  end
+
+  def test_current
+
+    ra = RoleAssignment.new
+    assert ra.current?
+
+    ra.invalid_after = Time.now + 15
+    assert ra.current?
+
+    ra.invalid_after = Time.now - 15
+    assert !ra.current?
+
   end
 
 end

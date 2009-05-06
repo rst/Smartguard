@@ -223,6 +223,53 @@ class PermissioningTest < Test::Unit::TestCase
     end
   end
 
+  def test_could_without_role
+
+    with_test_role_for_unprivileged_guy do |user, parent_role|
+
+      child_role = Role.create! :parent_role => parent_role, :name => 'child'
+
+      # Parent role grants :manage_trading
+      # Child  role grants :manage_lifecycle
+      # 
+      # Initially, both assigned...
+
+      parent_role.permissions << wildcard_perm( :grok,   Blog )
+      child_role.permissions  << wildcard_perm( :blurfl, Blog )
+
+      RoleAssignment.create!( :user => user, :role => child_role )
+
+      blog = blogs(:mertz_blog)
+
+      # ... and deassigning the child role should lose only :manage_trading
+      # (because parent role is still directly, independently assigned,
+      # and still grants :manage_lifecycle).
+
+      user.roles( :reload )
+      user.permissions( :reload )
+
+      assert  user.could_without_role?( child_role, :grok,   blog )
+      assert !user.could_without_role?( child_role, :blurfl, blog )
+
+      # But, if we deassign the parent role directly (so that its
+      # permissions are only granted by inheritance from the child role)...
+
+      ras = user.role_assignments.find( :all, 
+                                        :conditions=>{:role_id => parent_role})
+      ras.each do |ra| ra.destroy end
+
+      user = User.find( user.id )
+      assert !user.role_assignments.detect{ |ra| ra.role == parent_role }
+
+      # ... the child role is now needed for both.
+
+      assert !user.could_without_role?( child_role, :grok,   blog )
+      assert !user.could_without_role?( child_role, :blurfl, blog )
+
+    end
+
+  end
+
   # Test Permission#grants, to see if it behaves right in the
   # in-core cases.  Having done this, we validate the bulk queries
   # later on against the in-core behavior, and against a larger

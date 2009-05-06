@@ -47,6 +47,11 @@ module SmartguardBasicUser
     end
 
     def role_assigned_cond( id_stub ) #:nodoc:
+
+      # See also roles_without_assigned_role, below, which
+      # knows what it does, and does something similar in-core.
+      # Tested only indirectly via tests on could_without_role?
+
       return <<-END_SQL
         (select id from roles
          start with id in (select role_id from role_assignments
@@ -142,6 +147,30 @@ module SmartguardBasicUser
    self.roles( force_reload )    # ... now invoke the new one.
   end
 
+  # Returns all roles we'd have if the given role *wasn't* assigned;
+  # useful in rare cases where we want to know what would happen if
+  # we removed it.  See 'could_without_role?' below, q.v.
+
+  def roles_without_assigned_role( target_role ) # :nodoc:
+
+    other_roles = []
+
+    collect_role = lambda do |role|
+      unless role.nil? || other_roles.include?( role )
+        other_roles << role
+        collect_role.call( role.parent_role )
+      end
+    end
+
+    self.role_assignments.select(&:current?).each do |ra|
+      base_role = ra.role
+      collect_role.call( base_role ) unless base_role == target_role
+    end
+
+    return other_roles
+
+  end
+
   # Only the grant permissions of this user, as an array.
 
   def grant_permissions( force_reload = false )
@@ -184,6 +213,36 @@ module SmartguardBasicUser
     end
 
     return all_perms
+
+  end
+
+  # Permission check hack...
+  #
+  # Check to see if a user could perform a given operation,
+  # even without a particular role.
+  #
+  # The sole use case for this extraordinarily weird check
+  # is checking "delete role" in user administration.  In
+  # particular, we want to keep users from deassigning their
+  # own "user admin" roles.  (If they do, even by mistake, 
+  # they no longer have privilege to see the admin page --- 
+  # which leaves them staring at an error screen, powerless
+  # to correct the damage.)
+  #
+  # So, before allowing User.current to delete its own role r, we see if
+  #
+  #    User.current.could_without_role?( :administer, User.current, r )
+  #
+  # If not, they cannot delete the role --- at least not
+  # acting as themselves.
+
+  def could_without_role?( target_role, privilege, obj )
+
+    other_roles = roles_without_assigned_role( target_role )
+
+    perms = self.all_permissions( privilege, obj.class )
+    other_perms = perms.select{ |perm| other_roles.include?( perm.role )}
+    return other_perms.any?{ |perm| perm.allows?( obj, privilege, self ) }
 
   end
 

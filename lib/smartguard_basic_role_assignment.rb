@@ -37,6 +37,10 @@ module SmartguardBasicRoleAssignment
 
   end
 
+  def current?
+    invalid_after.nil? || invalid_after.to_time > Time.now
+  end
+
   def self.included( klass )
 
     klass.belongs_to :user
