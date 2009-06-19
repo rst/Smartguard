@@ -20,4 +20,4 @@ oracle:
   :adapter: oracle
   :username: rails_audit_test
   :password: rails_audit_test
-  :database: railyard_standby
+  :database: railyard

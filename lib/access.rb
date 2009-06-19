@@ -277,15 +277,17 @@ module Access
                           "#{table}.#{owner_id_attr} = :user"
 
         return sanitize_sql( [ <<-END_SQL, keys ] )
-          exists
-            (select 'x' from permissions p
-             where role_id in #{User.role_assigned_cond( ':user' )}
-               and (p.privilege  = :privilege or p.privilege = 'any')
+          (#{table_name}.id in
+            (select #{table_name}.id from #{table_name},
+               (select permissions.*
+                from permissions
+                where role_id in #{User.role_assigned_cond( ':user' )}) p
+             where (p.privilege  = :privilege or p.privilege = 'any')
                and (p.class_name = :class_name)
                and (p.is_grant   = :false)
                and (p.target_owned_by_self = :false or #{self_owner_cond})
                and #{self.permission_grant_conditions}
-            )
+            ))
         END_SQL
 
       end
