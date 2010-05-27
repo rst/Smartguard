@@ -49,6 +49,23 @@ module Access
       end
 
       # :call-seq:
+      #   Klass.ids_permitting_action :action_name[, :user => ...]
+      #
+      # Returns the text of a SQL subquery (suitable for use in a 
+      # join, etc.) which selects ids of records of this class's table
+      # on which the user (default: User.current) is permitted to
+      # perform the given action
+
+      def ids_permitting_action( action, keyword_args = {} )
+        priv = self.callback_privilege( EVENT_CALLBACK_KEYS[ action ] )
+        if priv.nil?
+          return '(select id from #{table_name})'
+        else
+          return ids_permitting( priv, keyword_args )
+        end
+      end
+
+      # :call-seq:
       #   Klass.where_permits_update_attr :action_name[, :user => ...]
       #
       # Returns the text of a SQL condition (suitable for use in a 
@@ -62,6 +79,23 @@ module Access
           return '1 = 1'
         else
           return where_permits( priv, keyword_args )
+        end
+      end
+
+      # :call-seq:
+      #   Klass.where_permits_update_attr :action_name[, :user => ...]
+      #
+      # Returns the text of a SQL subquery (suitable for use in a 
+      # join, etc.) which selects ids of records of this class's table
+      # on which the user (default: User.current) is permitted to
+      # update the given attributes
+
+      def ids_permitting_update_attr( attr_name, keyword_args = {} )
+        priv = self.reflected_privilege( :update_attribute, attr_name )
+        if priv.nil?
+          return '(select id from #{table_name})'
+        else
+          return ids_permitting( priv, keyword_args )
         end
       end
 

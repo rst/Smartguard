@@ -781,6 +781,11 @@ class RequirePermTest < Test::Unit::TestCase
   # complex cases, involving :on_associated.  Here the SQL comes
   # from a new and funky variant of where_permits, so we actually
   # have to explicitly check that it does the right thing.
+  #
+  # We similarly check for 'ids_permitting'.  The code for that
+  # drives 'where_permits' in almost all cases; this is the one
+  # case where 'ids_permitting' adds significant extra machinery,
+  # so we check here that that machinery is doing the right thing.
 
   def test_where_permits_associated
 
@@ -801,6 +806,15 @@ class RequirePermTest < Test::Unit::TestCase
         BlogEntry.find :all, 
           :conditions => BlogEntry.where_permits_update_attr( :entry_txt )
       end
+
+      ids_permitting_qry = BlogEntry.ids_permitting_update_attr( :entry_txt )
+      ids = ActiveRecord::Base.connection.select_values( ids_permitting_qry )
+
+      where_permits_cond = BlogEntry.where_permits_update_attr( :entry_txt )
+      records = BlogEntry.find :all, :conditions => where_permits_cond
+
+      assert_equal records.collect(&:id).sort, ids.sort
+
     end
 
     check_permits_both_ways( owner, other_user ) do | should_it, who |
@@ -808,6 +822,15 @@ class RequirePermTest < Test::Unit::TestCase
         BlogEntry.find :all, 
           :conditions => BlogEntry.where_permits_action( :destroy )
       end
+
+      ids_permitting_qry = BlogEntry.ids_permitting_action( :destroy )
+      ids = ActiveRecord::Base.connection.select_values( ids_permitting_qry )
+
+      where_permits_cond = BlogEntry.where_permits_action( :destroy )
+      records = BlogEntry.find :all, :conditions => where_permits_cond
+
+      assert_equal records.collect(&:id).sort, ids.sort
+
     end
 
   end

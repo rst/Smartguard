@@ -656,6 +656,18 @@ class PermissioningTest < Test::Unit::TestCase
 
   end
 
+  # Silly little test --- smoke-test 'ids_permitting', and make sure it
+  # properly does a 'select distinct'...
+
+  def test_ids_permitting_distinct
+    with_permission( one_object_perm( :change_post, blogs(:mertz_blog) )) do
+      sql = Blog.ids_permitting( :change_post )
+      assert_match( / distinct /, sql )
+      assert_equal [blogs(:mertz_blog).id], 
+        ActiveRecord::Base.connection.select_values( sql )
+    end
+  end
+
   # Utility routine
 
   def perm_dump( user, recs, perm, foo )

@@ -236,23 +236,47 @@ module Access
       def where_permits( priv, keyword_args = {} )
         priv, association = disassemble_priv( priv )
         if association.nil?
-          return where_permits_internal( priv, keyword_args )
+          return <<-END_SQL
+            (#{table_name}.id in
+             #{self.ids_permitting_internal( priv, keyword_args )})
+          END_SQL
         else
           klass = self.class_for_associate(association)
           fk = self.reflect_on_association(association).primary_key_name.to_s
           return <<-END_SQL
-                #{table_name}.#{fk} in
-                  (select id from #{klass.table_name} 
-                   where #{klass.where_permits_internal( priv )})
+            (#{table_name}.#{fk} in
+             #{klass.ids_permitting_internal( priv, keyword_args )})
           END_SQL
         end
       end
 
-      def where_permits_internal( priv, keyword_args = {} ) # :nodoc:
+      # :call-seq:
+      #   Klass.ids_permitting :operation[, :user => ... ]
+      # 
+      # Returns the text of a SQL subquery (surrounded by parens
+      # to avoid "macro leakage") which returns ids of all rows
+      # on which the user (default: User.current) is permitted to
+      # perform operation :operation
+
+      def ids_permitting( priv, keyword_args = {} )
+        priv, association = disassemble_priv( priv )
+        if association.nil?
+          return self.ids_permitting_internal( priv, keyword_args.merge( :distinct => true ))
+        else
+          klass = self.class_for_associate(association)
+          fk = self.reflect_on_association(association).primary_key_name.to_s
+          return <<-END_SQL
+            (select id from #{table_name} where #{table_name}.#{fk} in
+             #{klass.ids_permitting_internal( priv, keyword_args )})
+          END_SQL
+        end
+      end
+
+      def ids_permitting_internal( priv, keyword_args = {} ) # :nodoc:
 
         if priv == :forbidden_operation
           # ... lest wildcards "allow" it ...
-          return '2 + 2 = 5'
+          return "(select #{table_name}.id from #{table_name} where 2+2=5)"
         end
 
         # Note that we use Rails' pseudo-bind-parameters below
@@ -271,14 +295,15 @@ module Access
           :false      => false,
         }
 
+        maybe_distinct = keyword_args[:distinct] ? 'distinct' : ''
+
         table           = self.table_name
         owner_id_attr   = self.owner_access_control_key
         self_owner_cond = owner_id_attr.nil? ? '2 + 2 = 5' : 
                           "#{table}.#{owner_id_attr} = :user"
 
         return sanitize_sql( [ <<-END_SQL, keys ] )
-          (#{table_name}.id in
-            (select #{table_name}.id from #{table_name},
+            (select #{maybe_distinct} #{table_name}.id from #{table_name},
                (select permissions.*
                 from permissions
                 where role_id in #{User.role_assigned_cond( ':user' )}) p
@@ -287,7 +312,7 @@ module Access
                and (p.is_grant   = :false)
                and (p.target_owned_by_self = :false or #{self_owner_cond})
                and #{self.permission_grant_conditions}
-            ))
+            )
         END_SQL
 
       end
