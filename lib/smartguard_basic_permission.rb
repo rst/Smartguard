@@ -145,6 +145,11 @@ module SmartguardBasicPermission
     self.class_name = klass.nil? ? nil : klass.name
   end
 
+  def target_class_exists?
+    klass = self.class_name.split("::").inject(Object) {|m,x|  m.const_defined?(x) ? m.const_get(x) : break;}
+    klass != nil
+  end
+
   # Pseudo-attribute for granting privileges on particular objects.
 
   def target

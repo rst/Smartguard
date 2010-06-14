@@ -137,6 +137,7 @@ module SmartguardBasicUser
       implied_permissions = []
       @permissions.each do |p|
 	next if p.class_name.to_sym == :any
+	next unless p.target_class_exists?
 	p.target_class.sg_priv_to_implied_privs[p.privilege].each do |pi|
 	  p_new = p.clone
 	  p_new.privilege = pi
