@@ -177,7 +177,7 @@ module SmartguardBasicPermission
   def allows?( obj, priv, user )
 
     return false if obj.class.sg_base_class_name != self.class_name
-    return false if self.privilege != :any && self.privilege != priv
+    return false if self.privilege != :any && self.privilege != priv && !(obj.class.sg_priv_to_implied_privs[self.privilege].include?(priv))
     return false if self.is_grant
     return allows_internal?( obj, user )
 

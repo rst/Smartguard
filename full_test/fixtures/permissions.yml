@@ -36,7 +36,7 @@ ricardo_admin_post_create:
   id:           3
   role_id:      2            # ricardo_admin
   privilege:    create
-  class_name:   BlogPost
+  class_name:   BlogEntry
   is_grant:         false
   has_grant_option: false
   target_owned_by_self: true
@@ -101,7 +101,7 @@ ricardo_admin_post_delete:
   id:           4
   role_id:      2            # ricardo_admin
   privilege:    delete
-  class_name:   BlogPost
+  class_name:   BlogEntry
   is_grant:         false
   has_grant_option: false
   target_owned_by_self: true
