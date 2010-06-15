@@ -96,11 +96,6 @@ module Access
 
       end
 
-      klass.class_inheritable_accessor :sg_implied_priv_to_privs, :instance_writer => false
-      klass.class_inheritable_accessor :sg_priv_to_implied_privs, :instance_writer => false
-      klass.sg_implied_priv_to_privs = Hash.new { |h,k| h[k] = Array.new }
-      klass.sg_priv_to_implied_privs = Hash.new { |h,k| h[k] = Array.new }
-
     end
 
     module ClassMethods
@@ -159,18 +154,6 @@ module Access
 
         return self.sg_owner_access_control_key
 
-      end
-
-      # Declare that one privilege implies another.  Example:
-      #   declare_implied_privilege :assign, :implies => :find
-      # Means that a user who is granted assign privilege is automatically
-      # granted an equivalent find privilege (with the same access control
-      # settings, etc).
-      def declare_implied_privilege(priv, opts)
-	raise ArgumentError.new("options must include the name of the implied privilege") unless opts.include?(:implies)
-	implied_priv = opts[:implies]
-	self.sg_implied_priv_to_privs[implied_priv] << priv   # example sg_implied_priv_to_privs[:find] => [:assign]
-	self.sg_priv_to_implied_privs[priv] << implied_priv   # example sg_priv_to_implied_privs[:assign] => [:find]
       end
 
       # :call-seq:
@@ -319,15 +302,12 @@ module Access
         self_owner_cond = owner_id_attr.nil? ? '2 + 2 = 5' : 
                           "#{table}.#{owner_id_attr} = :user"
 
-        # look up implied privs
-	implied_privs_conds = self.sg_implied_priv_to_privs[priv].collect { |x| "or p.privilege = '#{x}'" }.join(" ")
-
         return sanitize_sql( [ <<-END_SQL, keys ] )
             (select #{maybe_distinct} #{table_name}.id from #{table_name},
                (select permissions.*
                 from permissions
                 where role_id in #{User.role_assigned_cond( ':user' )}) p
-             where (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
+             where (p.privilege  = :privilege or p.privilege = 'any')
                and (p.class_name = :class_name)
                and (p.is_grant   = :false)
                and (p.target_owned_by_self = :false or #{self_owner_cond})
@@ -371,9 +351,6 @@ module Access
         self_owner_cond = owner_id_attr.nil? ? '1 = 2' : 
           "#{table}.#{owner_id_attr} = users.id"
 
-        # look up privs that imply this one
-	implied_privs_conds = self.sg_implied_priv_to_privs[priv].collect { |x| "or p.privilege = '#{x}'" }.join(" ")
-
         keys = { 
           :false      => false,
           :privilege  => privilege.to_s,
@@ -391,7 +368,7 @@ module Access
                        and #{RoleAssignment.current_sql_condition})
                   connect by prior roles.parent_role_id = roles.id)
           and (p.role_id    = roles.id)
-          and (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
+          and (p.privilege  = :privilege or p.privilege = 'any')
           and (p.class_name = :class_name)
           and (p.is_grant   = :false)
           and (#{table}.id  = #{associate.id})

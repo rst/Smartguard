@@ -129,23 +129,7 @@ module SmartguardBasicUser
     @permissions = nil if force_reload
 
     cond_str = 'role_id in ' + self.class.role_assigned_cond( '?' )
-    if !@permissions
-      @permissions ||= Permission.find :all, :conditions => [cond_str, self]
-      # Add a permission for each implied privilege; e.g. if there is an assign
-      # privilege and assign implies find, then automatically create a find
-      # permission with the same arguments as the original one.
-      implied_permissions = []
-      @permissions.each do |p|
-	next if p.class_name.to_sym == :any
-	next unless p.target_class_exists?
-	p.target_class.sg_priv_to_implied_privs[p.privilege].each do |pi|
-	  p_new = p.clone
-	  p_new.privilege = pi
-	  implied_permissions << p_new
-	  end
-      end
-      @permissions += implied_permissions
-    end
+    @permissions ||= Permission.find :all, :conditions => [cond_str, self]
 
     @permissions_by_class_and_op = sort_permissions( @permissions )
 

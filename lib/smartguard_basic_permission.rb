@@ -145,11 +145,6 @@ module SmartguardBasicPermission
     self.class_name = klass.nil? ? nil : klass.name
   end
 
-  def target_class_exists?
-    klass = self.class_name.split("::").inject(Object) {|m,x|  m.const_defined?(x) ? m.const_get(x) : break;}
-    klass != nil
-  end
-
   # Pseudo-attribute for granting privileges on particular objects.
 
   def target
@@ -182,7 +177,7 @@ module SmartguardBasicPermission
   def allows?( obj, priv, user )
 
     return false if obj.class.sg_base_class_name != self.class_name
-    return false if self.privilege != :any && self.privilege != priv && !(obj.class.sg_priv_to_implied_privs[self.privilege].include?(priv))
+    return false if self.privilege != :any && self.privilege != priv
     return false if self.is_grant
     return allows_internal?( obj, user )
 
