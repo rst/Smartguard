@@ -185,25 +185,22 @@ module SmartguardBasicPermission
 
   def allows_internal?( obj, user ) # :nodoc:
 
-    owner_ack = obj.class.owner_access_control_key
+    if self.target_owned_by_self
 
-    unless owner_ack.nil?
-      owner_id = obj.send owner_ack.to_sym
-      return false if self.target_owned_by_self && owner_id != user.id
+      owner_ack = obj.class.owner_access_control_key
+
+      unless owner_ack.nil?
+        owner_id = obj[ owner_ack ]
+        return false if owner_id != user.id
+      end
+
     end
       
-    # Sigh... really don't want the expense of cloning here...
-    # May be able to refactor around it, but let's get it working like
-    # this first.  Note also that we need the typecasts on ID attrs!
-
-    obj_attrs  = obj.attributes
-    perm_attrs = self.attributes
-
     obj.class.access_control_keys.each do |obj_attr|
       target_attr = 'target_' + obj_attr
-      target_attr_val = perm_attrs[ target_attr ]
+      target_attr_val = self[ target_attr ]
       if !target_attr_val.nil? &&
-           target_attr_val != obj_attrs[ obj_attr ]
+           target_attr_val != obj[ obj_attr ]
         return false
       end
     end

@@ -28,6 +28,8 @@ class Report < ActiveRecord::Base
     include FullTestAccessControl
 
     owner_attrs_and_validations
+    
+    declare_owner_access_control_key 'owner_id'
 
     require_eponymous_privilege_to :find, :create, :update, :destroy
 

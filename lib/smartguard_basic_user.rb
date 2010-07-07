@@ -267,7 +267,9 @@ module SmartguardBasicUser
   protected
 
   def perms_sorted( force_reload = false ) # :nodoc:
-    permissions( force_reload )
+    if force_reload || @permissions_by_class_and_op.nil?
+      permissions( force_reload )
+    end
     @permissions_by_class_and_op
   end
 
