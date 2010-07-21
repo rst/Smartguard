@@ -249,6 +249,13 @@ class StiTest < Test::Unit::TestCase
 
   end
 
+  def test_users_permitted
+    with_permission(owner_firm_perm(:find, Report, firms(:mertz))) do
+      assert @mertz_billing.users_permitted_to(:find).include?( User.current )
+      assert !@ricardo_billing.users_permitted_to(:find).include?(User.current)
+    end
+  end
+
   # Verify that we *can't* set permissions on derived classes...
 
   def test_derived_class_permissions_invalid

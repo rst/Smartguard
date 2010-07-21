@@ -354,7 +354,7 @@ module Access
         keys = { 
           :false      => false,
           :privilege  => privilege.to_s,
-          :class_name => associate.class.name,
+          :class_name => associate.class.sg_base_class_name
         }
 
         return sanitize_sql( [ <<-END_SQL, keys ] )
