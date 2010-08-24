@@ -81,8 +81,8 @@ class DeclareImpliedPrivilegeTest < Test::Unit::TestCase
     add_post_ids = User.connection.select_values(users_permitted_sql)
     users_permitted_sql = MyBlog.users_permitted_sql(:messwith, @mertz_blog)
     messwith_ids = User.connection.select_values(users_permitted_sql)
-    assert_equal [users(:fred).id], add_post_ids
-    assert_equal [users(:fred).id, users(:ethel).id], messwith_ids 
+    assert_equal [users(:fred).id].sort, add_post_ids.sort
+    assert_equal [users(:fred).id, users(:ethel).id].sort, messwith_ids.sort 
   end
 
   def test_where_permits
