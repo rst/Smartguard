@@ -108,5 +108,33 @@ class DeclareImpliedPrivilegeTest < Test::Unit::TestCase
       assert_equal mertz_blog_ids, ids 
      end
   end
+
+  def test_force_reload
+    User.as( users(:fred) ) do 
+      # user starts off with permissions to add_post and (implied) messwith
+      assert User.current.can?(:messwith, @mertz_blog) 
+      assert User.current.can?(:add_post, @mertz_blog) 
+
+      # remove user's privs
+      add_post_role = Role.find_by_name "add_post_role"
+      add_post_role_assignment = RoleAssignment.find_by_user_id_and_role_id(User.current.id, add_post_role.id)
+      RoleAssignment.delete add_post_role_assignment.id 
+
+      assert (User.current.can?(:messwith, @mertz_blog)) # haven't reloaded yet, still have old perms
+
+      # force reload; user no longer allowed after this
+      User.current.permissions(true)  
+      assert !(User.current.can?(:messwith, @mertz_blog)) 
+      assert !(User.current.can?(:add_post, @mertz_blog)) 
+      
+      # re-add perms and force reload; user allowed again
+      User.as(users(:universal_grant_guy)) do 
+	RoleAssignment.create! :user => users(:fred), :role => add_post_role
+      end
+      User.current.permissions(true)  
+      assert User.current.can?(:add_post, @mertz_blog) 
+      assert User.current.can?(:messwith, @mertz_blog) 
+    end
+  end
 end
 
