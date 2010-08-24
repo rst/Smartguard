@@ -118,6 +118,8 @@ module SmartguardBasicUser
   end
 
   # All permissions of this user, as an array.
+  # NOTE:  This only returns permissions stored explicitly in the database:
+  # implied permissions are added on the fly (see perms_for_class()).
   # This isn't actually an association proxy, but calling it
   # with a non-nil first argument will force cached data to
   # be reloaded anyway.
@@ -125,32 +127,17 @@ module SmartguardBasicUser
   def permissions( force_reload = false )
 
     # Two levels of joins here, so can't use has_many :through
-
-    @permissions = nil if force_reload
+    if force_reload
+      @permissions = nil 
+      @permissions_by_class_and_op = {}
+    end
 
     cond_str = 'role_id in ' + self.class.role_assigned_cond( '?' )
     if !@permissions
       @permissions ||= Permission.find :all, :conditions => [cond_str, self]
-      # Add a permission for each implied privilege; e.g. if there is an assign
-      # privilege and assign implies find, then automatically create a find
-      # permission with the same arguments as the original one.
-      implied_permissions = []
-      @permissions.each do |p|
-	next if p.class_name.to_sym == :any
-	next unless p.target_class_exists?
-	p.target_class.sg_priv_to_implied_privs[p.privilege].each do |pi|
-	  p_new = p.clone
-	  p_new.privilege = pi
-	  implied_permissions << p_new
-	  end
-      end
-      @permissions += implied_permissions
     end
 
-    @permissions_by_class_and_op = sort_permissions( @permissions )
-
     return @permissions
-
   end
 
   # Weird metaprogramming trick; we want the effect of has_many :roles,
@@ -201,7 +188,7 @@ module SmartguardBasicUser
     return false if privilege == :forbidden_operation # lest wildcards allow it
 
     class_name  = obj.class.sg_base_class_name
-    class_perms = perms_sorted[class_name] || {}
+    class_perms = perms_for_class(class_name) || {}
 
     (class_perms[privilege] || []).each do |perm|
       return true if perm.allows_internal?( obj, self )
@@ -221,7 +208,7 @@ module SmartguardBasicUser
 
   def all_permissions( privilege, klass )
 
-    class_perms = self.perms_sorted[ klass.name ] || {}
+    class_perms = self.perms_for_class( klass.name ) || {}
     all_perms = class_perms[ privilege ] || []
 
     if !class_perms[ :any ].nil?
@@ -275,18 +262,43 @@ module SmartguardBasicUser
 
   def could_ever?( operation, klass )
     klass = klass.name if klass.is_a?( Class )
-    klass_perms = perms_sorted[klass]
+    klass_perms = perms_for_class(klass)
     return !klass_perms.nil? &&
       (!klass_perms[operation].nil? || !klass_perms[:any].nil?)
   end
 
   protected
 
-  def perms_sorted( force_reload = false ) # :nodoc:
-    if force_reload || @permissions_by_class_and_op.nil?
-      permissions( force_reload )
+  # Add a permission for each implied privilege; e.g. if there is an assign
+  # privilege and assign implies find, then automatically create a find
+  # permission with the same arguments as the original one.
+  # Note:  There was a previous bug where implied permissions were not being
+  # created because the class definition had not yet been loaded at the time
+  # that the memoized permissions hash was created.  If implied perms are ever
+  # mysteriously missing, check for that.
+  def implied_perms_for(permissions)
+    implied_permissions = []
+    permissions.each do |p|
+      next if p.class_name.to_sym == :any
+      next unless p.target_class_exists?
+      p.target_class.sg_priv_to_implied_privs[p.privilege].each do |pi|
+	p_new = p.clone
+	p_new.privilege = pi
+	implied_permissions << p_new
+	end
     end
-    @permissions_by_class_and_op
+    implied_permissions 
+  end
+
+  def perms_for_class( class_name, force_reload = false ) # :nodoc:
+    @permissions_by_class_and_op ||= {}
+    @permissions_by_class_and_op[class_name] = nil if force_reload 
+    if !@permissions_by_class_and_op[class_name]
+      permissions = self.permissions(force_reload).select { |p| p.class_name == class_name }
+      permissions += implied_perms_for(permissions)
+      @permissions_by_class_and_op[class_name] = sort_permissions(permissions)[class_name]
+    end
+    @permissions_by_class_and_op[class_name]
   end
 
   def sort_permissions( perms )
