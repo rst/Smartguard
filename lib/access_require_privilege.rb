@@ -926,11 +926,19 @@ module Access
 
           perm_access_key = 'target_' + foreign_key
 
+          is_owner_ack = (foreign_key == self.class.owner_access_control_key)
+
           unless privilege.nil?
 
             all_perms = user.all_permissions( privilege, self.class )
             real_perms = all_perms.reject {|p| p.is_grant?}
-            all_ids = real_perms.collect{ |perm| perm[perm_access_key] }
+            all_ids = real_perms.collect{ |perm| 
+              if is_owner_ack && perm.target_owned_by_self
+                user.id
+              else
+                perm[perm_access_key] 
+              end
+            }
 
             if all_ids == []
               sql_conds << '2 + 2 = 5'

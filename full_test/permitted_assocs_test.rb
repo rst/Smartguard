@@ -104,6 +104,18 @@ class PermittedAssocsTest < Test::Unit::TestCase
 
   end
 
+  def test_owned_by_self
+
+    perm = wildcard_perm( :create, PhonyPatEntry )
+    perm.target_owned_by_self = true
+
+    with_permission( perm ) do
+      assert_equal [ User.current.id ], 
+                   PhonyPatEntry.new.permitted_associates(:owner).collect(&:id)
+    end
+    
+  end
+
   def test_at_create
 
     entry = PhonyPatEntry.new :entry_txt => 'goodbye'
