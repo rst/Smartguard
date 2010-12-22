@@ -367,37 +367,61 @@ module Access
         return 'select id from users where 1 = 2' if associate.nil?
 
         table = associate.class.table_name
-        owner_id_attr = associate.class.owner_access_control_key
-        self_owner_cond = owner_id_attr.nil? ? '1 = 2' : 
-          "#{table}.#{owner_id_attr} = users.id"
 
         # look up privs that imply this one
 	implied_privs_conds = self.sg_implied_priv_to_privs[priv].collect { |x| "or p.privilege = '#{x}'" }.join(" ")
 
         keys = { 
+          :true       => true,
           :false      => false,
           :privilege  => privilege.to_s,
           :class_name => associate.class.sg_base_class_name
         }
 
-        return sanitize_sql( [ <<-END_SQL, keys ] )
-         select users.id 
-         from users, roles, permissions p, #{table}
-         where roles.id in
+        non_owner_query = sanitize_sql( [ <<-END_SQL, keys ] )
+         select user_id from role_assignments
+         where (#{RoleAssignment.current_sql_condition})
+           and role_assignments.role_id in
+             (select id from roles
+              start with roles.id in
+               (select p.role_id
+                from permissions p, #{table}
+                where (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
+                  and (p.class_name = :class_name)
+                  and (p.is_grant   = :false)
+                  and (#{table}.id  = #{associate.id})
+                  and (p.target_owned_by_self = :false)
+                  and #{associate.class.permission_grant_conditions})
+            connect by prior roles.id = roles.parent_role_id)
+        END_SQL
+
+        owner_id_attr = associate.class.owner_access_control_key
+
+        if owner_id_attr.nil?
+          return non_owner_query
+        else
+          owner_query = sanitize_sql( [ <<-END_SQL, keys ] )
+           select #{table}.#{owner_id_attr}
+           from roles, permissions p, #{table}
+           where roles.id in
                  (select id from roles
                   start with roles.id in
                       (select role_id from role_assignments
-                       where user_id = users.id
+                       where user_id = #{table}.#{owner_id_attr}
                        and #{RoleAssignment.current_sql_condition})
                   connect by prior roles.parent_role_id = roles.id)
-          and (p.role_id    = roles.id)
-          and (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
-          and (p.class_name = :class_name)
-          and (p.is_grant   = :false)
-          and (#{table}.id  = #{associate.id})
-          and (p.target_owned_by_self = :false or #{self_owner_cond})
-          and #{associate.class.permission_grant_conditions}
-        END_SQL
+            and (p.role_id    = roles.id)
+            and (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
+            and (p.class_name = :class_name)
+            and (p.is_grant   = :false)
+            and (#{table}.id  = #{associate.id})
+            and (p.target_owned_by_self = :true)
+            and #{associate.class.permission_grant_conditions}
+          END_SQL
+
+          return "(#{non_owner_query} UNION #{owner_query})"
+        end
+
       end
 
       def check_user_set!(user, priv, associate) # :nodoc:
