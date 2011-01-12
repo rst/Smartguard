@@ -517,6 +517,20 @@ module Access
 
       end
 
+      # The standard 'exists?' implementation instantiates an
+      # object with *only* the id populated, and not any of the
+      # access control keys.  Strangely, this leads to permission
+      # failures.  The easiest way to work around this sticking
+      # only to documented API, albeit with nasty overhead:
+
+      def exists?( arg )
+        begin
+          super( arg )
+        rescue PermissionFailure
+          return true;
+        end
+      end
+
       include Access::RequirePrivilege::ClassMethods
 
       # Memoized versions of base_class and base_class.name

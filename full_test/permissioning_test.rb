@@ -841,6 +841,11 @@ class PermissioningTest < ActiveSupport::TestCase
 
   end
 
+  def test_wrapped_exists?
+    assert Blog.exists?( blogs(:mertz_blog).id )
+    assert !Blog.exists?( -42 )
+  end
+
   def test_check_permission
     with_test_role_for_unprivileged_guy do |user, role|
 
