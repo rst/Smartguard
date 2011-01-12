@@ -836,6 +836,9 @@ class PermissioningTest < ActiveSupport::TestCase
     assert_equal Blog,               err.target_class
     assert_nil                       err.target
 
+    err = PermissionFailure.new "blah", :target => Blog.new, :privilege => :grok
+    assert_equal "blah blog UNNAMED (UNSAVED)", err.message
+
   end
 
   def test_check_permission
