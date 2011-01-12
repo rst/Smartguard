@@ -39,12 +39,10 @@ end
 
 # Collection elements for collection_select
 
-class Wombat
-  attr_accessor :id, :name
-  def initialize( id, name )
-    self.id = id
-    self.name = name
-  end
+class Wombat < Struct.new( :id, :name )
+end
+
+class WombatTeam < Struct.new( :team_name, :wombats )
 end
 
 class AcsFormBuilderTest < ActionController::TestCase
@@ -311,7 +309,7 @@ class AcsFormBuilderTest < ActionController::TestCase
         # irrelevant...
 
         check_html = f.check_box( :guarded_number )
-        check_html = check_html.gsub( /<input name="disabled.*>/, '' )
+        check_html = check_html.gsub( /<input name="disabled[^>]*>/, '' )
 
         assert_dom_equal( trim(<<-EOD), check_html )
             <input checked="checked" disabled="disabled" 
@@ -322,28 +320,31 @@ class AcsFormBuilderTest < ActionController::TestCase
         EOD
         cbox_txt = f.check_box( :guarded_bool_false, {}, true, false )
         assert_dom_equal( trim(<<-EOD), cbox_txt)
-           <input disabled="disabled" id="disabled_blog_guarded_bool_false" 
+           <input name="disabled_blog[guarded_bool_false]" 
+                     type="hidden" value="false"
+            /><input disabled="disabled" id="disabled_blog_guarded_bool_false" 
                   name="disabled_blog[guarded_bool_false]" type="checkbox" 
                   value="true" 
-            /><input name="disabled_blog[guarded_bool_false]" 
-                     type="hidden" value="false"/>
+            />
         EOD
 
         role.permissions << one_object_perm( :change_guarded, blog )
         user.permissions :force_reload
 
         assert_dom_equal( trim(<<-EOD), f.check_box( :guarded_number ))
-            <input checked="checked" id="blog_guarded_number" 
+            <input name="blog[guarded_number]" type="hidden" value="0" 
+             /><input checked="checked" id="blog_guarded_number" 
                    name="blog[guarded_number]" type="checkbox" 
                    value="1"
-             /><input name="blog[guarded_number]" type="hidden" value="0" />
+             />
         EOD
         cbox_txt = f.check_box( :guarded_bool_false, {}, true, false )
         assert_dom_equal( trim(<<-EOD), cbox_txt)
-           <input id="blog_guarded_bool_false" name="blog[guarded_bool_false]" 
+           <input name="blog[guarded_bool_false]" 
+                     type="hidden" value="false"
+           /><input id="blog_guarded_bool_false" name="blog[guarded_bool_false]" 
                   type="checkbox" value="true" 
-            /><input name="blog[guarded_bool_false]" 
-                     type="hidden" value="false"/>
+            />
         EOD
 
       end
@@ -489,6 +490,68 @@ class AcsFormBuilderTest < ActionController::TestCase
              ><option value="2">Claude</option>
               <option value="3" selected="selected">James</option>
               <option value="4">Billingsley</option></select>
+        EOD
+
+      end
+
+    end
+
+  end
+
+  def test_grouped_collection_select
+
+    blog = test_blog
+    teams = [WombatTeam.new( "Manchester United",
+                             [ Wombat.new(2, "Claude"), 
+                               Wombat.new(3, "James") ] ),
+             WombatTeam.new( "Real Madrid",
+                             [ Wombat.new(4, "Billingsley") ])]
+
+    with_test_role_for_unprivileged_guy do |user, role|
+
+      # Text non-permitted display test.  
+      # Done first, since subsequent tests will change privileges
+
+      fields_for :blog, blog,
+                 :builder => Access::Sensitive::FormBuilder,
+                 :if_not_permitted => :present_text do |f|
+        assert_equal 'James', 
+          f.grouped_collection_select( :guarded_number, teams, 
+                                       :wombats, :team_name,
+                                       :id, :name )
+      end
+
+      # Now the disabled-elt test
+
+      fields_for :blog, blog, :builder => Access::Sensitive::FormBuilder do |f|
+
+        select_txt = f.grouped_collection_select( :guarded_number, teams, 
+                                                  :wombats, :team_name,
+                                                  :id, :name )
+        assert_dom_equal( trim(<<-EOD), select_txt )
+           <select disabled="disabled" id="disabled_blog_guarded_number" 
+                   name="disabled_blog[guarded_number]"
+             ><optgroup label="Manchester United"
+               ><option value="2">Claude</option>
+                <option value="3" selected="selected">James</option></optgroup>
+              <optgroup label="Real Madrid"
+                ><option value="4">Billingsley</option></optgroup></select>
+        EOD
+
+        role.permissions << one_object_perm( :change_guarded, blog )
+        user.permissions :force_reload
+
+        select_txt = f.grouped_collection_select( :guarded_number, teams, 
+                                                  :wombats, :team_name,
+                                                  :id, :name )
+
+        assert_dom_equal( trim(<<-EOD), select_txt )
+           <select id="blog_guarded_number" name="blog[guarded_number]"
+             ><optgroup label="Manchester United"
+               ><option value="2">Claude</option>
+                <option value="3" selected="selected">James</option></optgroup>
+              <optgroup label="Real Madrid"
+               ><option value="4">Billingsley</option></optgroup></select>
         EOD
 
       end

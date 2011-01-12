@@ -40,11 +40,11 @@ module Access
            datetime_select time_select date_select)
 
       OTHER_FORM_HELPERS = 
-        %w(check_box radio_button 
+        %w(check_box radio_button grouped_collection_select
            select collection_select time_zone_select)
 
       JUNK_METHODS = %w(fields_for error_message_on error_messages
-                        apply_form_for_options! label submit)
+                        apply_form_for_options! label submit emitted_hidden_id?)
 
       CHECKMARK = '&#10003;'    # HTML code for a check-mark
 
@@ -122,6 +122,12 @@ module Access
           'attr, collection, value_attr, text_attr, opts={}, html_options={}',
           'find_selected_option_from_collection(val, collection, '+
             'value_attr, text_attr)'
+
+        klass.wrap_form_helper_for_permissions 'grouped_collection_select',
+          'attr, collection, group_attr, group_text_attr, '+
+            'value_attr, text_attr, opts = {}, html_options = {}',
+          'find_selected_option_from_group_collection(val, collection, '+
+            'group_attr, value_attr, text_attr)'
       end
 
       def find_selected_option_from_collection( val, collection, 
@@ -132,6 +138,24 @@ module Access
         collection.each do |elt|
           if elt.send( value_meth ) == val
             return elt.send( text_meth )
+          end
+        end
+
+        return val.to_s         # Couldn't find it... punt.
+
+      end
+
+      def find_selected_option_from_group_collection( val, groups,
+                                                      group_meth, value_meth,
+                                                      text_meth )
+
+        return '' if val.nil?
+
+        groups.each do |group|
+          group.send( group_meth ).each do |elt|
+            if elt.send( value_meth ) == val
+              return elt.send( text_meth )
+            end
           end
         end
 
