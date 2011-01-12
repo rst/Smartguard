@@ -37,7 +37,15 @@ class PermissionFailure < SecurityError
     target = keys[:target]
     unless keys[:target].nil?
       message += " " + target.class.to_s.underscore + " "
-      message += ((target.name||"UNNAMED")+' ') if target.respond_to?( :name )
+
+      has_name = false
+      begin
+        has_name = target.respond_to?( :name )
+      rescue ActiveRecord::MissingAttributeException
+        has_name = true
+      end
+      message += ((target.name||"UNNAMED")+' ') if has_name
+
       if target.is_a?( ActiveRecord::Base )
         targ_id = target.id
         if targ_id.nil?

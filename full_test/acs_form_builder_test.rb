@@ -22,9 +22,6 @@
 
 require File.dirname(__FILE__) + '/abstract_unit'
 
-require 'action_controller/assertions'
-require 'action_controller/assertions/dom_assertions'
-
 class AcPhonyBlog < ActiveRecord::Base
 
   set_table_name 'blogs'
@@ -50,7 +47,7 @@ class Wombat
   end
 end
 
-class AcsFormBuilderTest < Test::Unit::TestCase
+class AcsFormBuilderTest < ActionController::TestCase
 
   CHECKMARK = Access::Sensitive::FormBuilderMixin::CHECKMARK
 

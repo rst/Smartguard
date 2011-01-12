@@ -32,7 +32,7 @@ class MyBlogEntry < ActiveRecord::Base
 end
 
 
-class DeclareImpliedPrivilegeTest < Test::Unit::TestCase
+class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
   use_all_fixtures
 
   def setup

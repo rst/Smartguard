@@ -21,7 +21,7 @@
 #++
 require File.dirname(__FILE__) + '/abstract_unit'
 
-class PermissioningTest < Test::Unit::TestCase
+class PermissioningTest < ActiveSupport::TestCase
 
   use_all_fixtures
 

@@ -21,7 +21,7 @@
 #++
 require File.dirname(__FILE__) + '/abstract_unit'
 
-class Bootstrap < Test::Unit::TestCase
+class Bootstrap < ActiveSupport::TestCase
 
   include Access::SanityTests
 

@@ -35,7 +35,7 @@ require 'activity_report'
 require 'line_item'
 require 'billing_line_item'
 
-class StiTest < Test::Unit::TestCase
+class StiTest < ActiveSupport::TestCase
 
   use_all_fixtures
 

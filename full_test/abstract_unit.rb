@@ -54,10 +54,10 @@ ActiveRecord::Base.establish_connection( selected_config )
 
 load(File.dirname(__FILE__) + "/schema.rb")
 
-Test::Unit::TestCase.fixture_path = File.dirname(__FILE__) + "/fixtures/"
-$:.unshift(Test::Unit::TestCase.fixture_path)
+class ActiveSupport::TestCase
 
-class Test::Unit::TestCase #:nodoc:
+  include ActiveRecord::TestFixtures
+  self.fixture_path = File.dirname(__FILE__) + "/fixtures/"
 
   self.use_transactional_fixtures = true
   self.use_instantiated_fixtures  = false
@@ -96,6 +96,8 @@ class Test::Unit::TestCase #:nodoc:
   end
 
 end
+
+$:.unshift(ActiveSupport::TestCase.fixture_path)
 
 require 'access_db_helpers'
 require 'full_test_access_control'

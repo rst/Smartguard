@@ -21,7 +21,7 @@
 #++
 require File.dirname(__FILE__) + '/abstract_unit'
 
-class GrantTest < Test::Unit::TestCase
+class GrantTest < ActiveSupport::TestCase
 
   use_all_fixtures
 

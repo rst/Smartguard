@@ -22,7 +22,7 @@
 
 require File.dirname(__FILE__) + '/abstract_unit'
 
-class BlogEntryTest < Test::Unit::TestCase
+class BlogEntryTest < ActiveSupport::TestCase
   fixtures :blog_entries
 
   # Replace this with your real tests.

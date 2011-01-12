@@ -46,7 +46,7 @@ class PhonyPatEntry < ActiveRecord::Base
 
 end
 
-class PermittedAssocsTest < Test::Unit::TestCase
+class PermittedAssocsTest < ActiveSupport::TestCase
 
   use_all_fixtures
 

@@ -173,7 +173,7 @@ class PhonyReqPermComment < ActiveRecord::Base
                      :foreign_key => 'blog_entry_id'
 end
 
-class RequirePermTest < Test::Unit::TestCase
+class RequirePermTest < ActiveSupport::TestCase
 
   use_all_fixtures
 

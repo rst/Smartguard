@@ -21,7 +21,7 @@
 #++
 require File.dirname(__FILE__) + '/abstract_unit'
 
-class LoggingTest < Test::Unit::TestCase
+class LoggingTest < ActiveSupport::TestCase
 
   use_all_fixtures
 

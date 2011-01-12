@@ -21,7 +21,7 @@
 #++
 require File.dirname(__FILE__) + '/abstract_unit'
 
-class EntryCommentTest < Test::Unit::TestCase
+class EntryCommentTest < ActiveSupport::TestCase
   fixtures :entry_comments
 
   # Replace this with your real tests.

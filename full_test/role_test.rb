@@ -21,7 +21,7 @@
 #++
 require File.dirname(__FILE__) + '/abstract_unit'
 
-class RoleTest < Test::Unit::TestCase
+class RoleTest < ActiveSupport::TestCase
 
   use_all_fixtures
 
