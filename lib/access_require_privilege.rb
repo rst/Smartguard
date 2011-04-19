@@ -512,7 +512,12 @@ module Access
             arg.check_permission!( assoc_priv )
           end
 
-          send old_setter_method, arg
+          begin
+            @smartguard_checked_associate = arg
+            send old_setter_method, arg
+          ensure
+            @smartguard_checked_associate = nil
+          end
           
         end
 
@@ -1032,7 +1037,10 @@ module Access
 
           klass = self.class.class_for_associate( assoc_name )
 
-          if klass.respond_to?( :associate_privilege )
+          if klass.respond_to?( :associate_privilege ) &&
+              (@smartguard_checked_associate.nil? ||
+               !@smartguard_checked_associate.is_a?( klass ) ||
+               !new_value == @smartguard_checked_associate.id)
 
             check_foreign_priv = lambda do |priv, foreign_id|
               if !priv.nil? && !foreign_id.nil?
