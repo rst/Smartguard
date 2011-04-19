@@ -449,7 +449,7 @@ module Access
       def permits_for_id?( priv, id ) # :nodoc:
 
         sql = 
-          sanitize_sql(["select 'x' from #{table_name} where id = ? and ",id])+
+          sanitize_sql(["select id from #{table_name} where id = ? and ",id])+
                        where_permits( priv )
 
         flag = connection.select_values( sql )
