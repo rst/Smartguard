@@ -192,7 +192,7 @@ module SmartguardBasicPermission
 
     if self.target_owned_by_self
 
-      owner_ack = obj.class.owner_access_control_key
+      owner_ack = owner_access_control_key
 
       unless owner_ack.nil?
         owner_id = obj[ owner_ack ]
@@ -201,18 +201,33 @@ module SmartguardBasicPermission
 
     end
       
-    obj.class.access_control_keys.each do |obj_attr|
-      target_attr = 'target_' + obj_attr
-      target_attr_val = self[ target_attr ]
-      if !target_attr_val.nil? &&
-           target_attr_val != obj[ obj_attr ]
-        return false
-      end
+    ack_checks_hash_internal.each do |obj_attr, val|
+      return false if obj[obj_attr] != val
     end
 
     return true
 
   end
+
+  private
+
+  def ack_checks_hash_internal
+    @internal_acks_hash ||= {}.tap do |ack_hash|
+      target_class.access_control_keys.each do |obj_attr|
+        target_attr = 'target_' + obj_attr
+        target_attr_val = self[ target_attr ]
+        unless target_attr_val.nil?
+          ack_hash[obj_attr] = target_attr_val
+        end
+      end
+    end
+  end
+
+  def owner_access_control_key
+    @owner_ack_internal ||= target_class.owner_access_control_key
+  end
+
+  public
 
   # Returns true if this permission can grant the other_perm.
   # That is, if my_grant_perm.can_grant?( other_perm ), and the user
