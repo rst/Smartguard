@@ -178,5 +178,35 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
 
   end
 
+  def test_alternate_privileges_for_edit
+
+    messwith_grant = Permission.new :target_class => MyBlog, 
+      :target => @mertz_blog,
+      :privilege => :messwith,
+      :is_grant => true, :has_grant_option => false, 
+      :target_owned_by_self => false
+
+    add_post_grant = messwith_grant.clone
+    add_post_grant.privilege = :add_post
+
+    simple_perm = messwith_grant.clone
+    simple_perm.is_grant = false
+
+    with_permission( messwith_grant ) do
+      assert_equal [:messwith], simple_perm.alternate_privileges_for_edit
+    end
+
+    [:messwith, :add_post].each do |priv|
+
+      simple_perm.privilege = priv
+
+      with_permission( add_post_grant ) do
+        assert_equal [:add_post, :messwith], 
+          simple_perm.alternate_privileges_for_edit.sort_by(&:to_s)
+      end
+    end
+    
+  end
+
 end
 

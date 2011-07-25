@@ -275,5 +275,14 @@ module SmartguardBasicPermission
     user.permissions.any?{ |grant| grant.can_grant?( self ) }
 
   end
+
+  # If editing a role, the user might be able to replace the
+  # privilege of this permission with others.  If so, this will
+  # be the full list of alternatives.
+
+  def alternate_privileges_for_edit( user = User.current )
+    applicable_grants = user.permissions.select{|grant| grant.can_grant?(self)}
+    applicable_grants.collect( &:grantable_privileges ).flatten
+  end
     
 end
