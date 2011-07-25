@@ -136,5 +136,47 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
       assert User.current.can?(:messwith, @mertz_blog) 
     end
   end
+
+  def test_implied_grants
+
+    my_grant = Permission.new :target_class => MyBlog, :target => @mertz_blog,
+      :privilege => :add_post,
+      :is_grant => true, :has_grant_option => false, 
+      :target_owned_by_self => false
+
+    my_perm = my_grant.clone
+
+    my_perm.is_grant = false
+    assert my_grant.can_grant?( my_perm )
+    
+    my_perm.privilege = :messwith
+    assert my_grant.can_grant?( my_perm )
+
+    my_perm.privilege = :add_post
+    my_grant.privilege = :messwith
+
+    assert !my_grant.can_grant?( my_perm )
+
+  end
+
+  def test_grantable_privileges
+
+    my_grant = Permission.new :target_class => MyBlog, :target => @mertz_blog,
+      :privilege => :messwith,
+      :is_grant => true, :has_grant_option => false, 
+      :target_owned_by_self => false
+
+    assert_equal [:messwith], my_grant.grantable_privileges
+
+    my_grant.privilege = :add_post
+    assert_equal [:add_post, :messwith], 
+                 my_grant.grantable_privileges.sort_by(&:to_s)
+
+    my_grant.privilege = :any
+    assert_equal ([:any] + MyBlog.declared_privileges).sort_by(&:to_s),
+                 my_grant.grantable_privileges.sort_by(&:to_s)
+
+  end
+
 end
 

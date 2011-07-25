@@ -176,6 +176,16 @@ module SmartguardBasicPermission
 
   end
 
+  # Privileges (if any) that this permission allows a user to grant.
+
+  def grantable_privileges
+    return [] if !self.is_grant?
+    return [self.privilege] if self.class_name == 'any'
+    klass = self.target_class
+    return klass.declared_privileges + [:any] if self.privilege == :any
+    return [self.privilege] + klass.sg_priv_to_implied_privs[self.privilege]
+  end
+
   # Returns true if this permission grants the given user (of the
   # given firm) the privilege op on obj.
 
@@ -242,8 +252,8 @@ module SmartguardBasicPermission
 
     return false if self.class_name != 'any' &&
                     self.class_name != other_perm.class_name 
-    return false if self.privilege  != :any &&
-                    self.privilege  != other_perm.privilege
+    return false if self.privilege != :any &&
+                    !self.grantable_privileges.include?( other_perm.privilege )
 
     self.class.target_access_control_keys.each do |attr|
       return false if !self.send( attr ).nil? &&
