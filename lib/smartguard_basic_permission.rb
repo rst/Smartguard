@@ -177,12 +177,23 @@ module SmartguardBasicPermission
   end
 
   # Privileges (if any) that this permission allows a user to grant.
-  # NOTE: if the grant is for any class we can't figure out any implied privs
 
   def grantable_privileges
     return [] if !self.is_grant?
     return [self.privilege] if self.class_name == 'any'
     klass = self.target_class
+    return klass.declared_privileges + [:any] if self.privilege == :any
+    return [self.privilege] + klass.sg_priv_to_implied_privs[self.privilege]
+  end
+
+  # Because this can be confusing here the expected behavior
+  # grant(any_class, any_priv)      - return all declared privs of klass 
+  # grant(any_class, named_priv)    - return named_priv + anything it implies
+  # grant(named_class, any_priv)    - if named_class==klass return all declared privs of klass else return []
+  # grant(named_class, named_priv)  - if named_class==klass return (named_priv + anything it implies) else return []
+  def grantable_privileges_for_class(klass)
+    return [] if !self.is_grant?
+    return [] if self.class_name != 'any' && self.class_name != klass.name
     return klass.declared_privileges + [:any] if self.privilege == :any
     return [self.privilege] + klass.sg_priv_to_implied_privs[self.privilege]
   end
@@ -243,20 +254,58 @@ module SmartguardBasicPermission
   # Returns true if this permission can grant the other_perm.
   # That is, if my_grant_perm.can_grant?( other_perm ), and the user
   # has my_grant_perm, they can add other_perm to a role.
+  #
+  # Because this is so confusing, here is a table:
+  #
+  # grant(any_class, any_priv)              - always true provided access control keys match
+  # grant(any_class, named_priv) 
+  #     other_priv(any_class, any_priv)     - always false
+  #     other_priv(any_class, named_priv)   - assert grant.priv == other_priv.priv
+  #     other_priv(named_class, any_priv)   - always false
+  #     other_priv(named_class, named_priv) - assert grant.grantable_privileges_for_class(other_priv.class).include?(other_priv.priv)
+  # grant(named_class, any_priv)
+  #     other_priv(any_class, any_priv)     - always false
+  #     other_priv(any_class, named_priv)   - always false
+  #     other_priv(named_class, any_priv)   - assert grant.class == other_priv.class
+  #     other_priv(named_class, named_priv) - assert grant.class == other_priv.class 
+  # grant(named_class, named_priv)
+  #     other_priv(any_class, any_priv)     - always false
+  #     other_priv(any_class, named_priv)   - always false
+  #     other_priv(named_class, any_priv)   - always false
+  #     other_priv(named_class, named_priv) - assert ( grant.class == other_priv.class and 
+  #                                             grant.grantable_privileges_for_class(other_priv.class).include?(other_priv.priv) )
+  # If the above conditions all pass then assert access_control_keys match 
+  #
 
   def can_grant?( other_perm )
 
+    # check that self is in fact a grant
     return false if !self.is_grant
     return false if !self.has_grant_option && other_perm.is_grant
     return false if self.target_owned_by_self &&
                     !other_perm.target_owned_by_self
+    
+    # check target class and privilege
+    if self.class_name == 'any'  # grant on any class
+      if self.privilege != :any
+        return false if other_perm.privilege == :any    
+        if other_perm.class_name == 'any'
+          return false unless self.privilege == other_perm.privilege
+        else
+          # if we have reached this condition we know that other_perm.class name must be a named class
+          return false unless self.grantable_privileges_for_class(other_perm.target_class).include?(other_perm.privilege)
+        end
+      end
+    else  # grant on a named class
+      return false unless self.class_name == other_perm.class_name
+      if self.privilege != :any 
+        return false if other_perm.privilege == :any
+        # if we have reached this condition we know that other_perm.class name must be a named class
+        return false unless self.grantable_privileges_for_class(other_perm.target_class).include?(other_perm.privilege)
+      end
+    end
 
-    return false if self.class_name != 'any' &&
-                    self.class_name != other_perm.class_name 
-    return false if self.privilege != :any &&
-                    self.class_name != 'any' &&
-                    !self.grantable_privileges.include?( other_perm.privilege )
-
+    # in all cases, access control keys must match
     self.class.target_access_control_keys.each do |attr|
       return false if !self.send( attr ).nil? &&
                       self.send( attr ) != other_perm.send( attr )

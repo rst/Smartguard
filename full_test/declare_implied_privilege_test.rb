@@ -159,6 +159,143 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
 
   end
 
+  def test_can_grant
+
+    myblog_perm = Permission.new :target_class =>MyBlog, :privilege => :messwith, 
+                      :is_grant => false, :has_grant_option =>false, :target_owned_by_self => false
+    myblogentry_perm = Permission.new :target_class =>MyBlogEntry, :privilege => :create, 
+                      :is_grant => false, :has_grant_option =>false, :target_owned_by_self => false
+    anyclass_perm = Permission.new :class_name => 'any', :privilege => :create, 
+                      :is_grant => false, :has_grant_option =>false, :target_owned_by_self => false
+    myblog_ack_perm = Permission.new :class_name => MyBlog, :privilege => :create, 
+                      :is_grant => false, :has_grant_option =>false, :target_owned_by_self => false,
+                      :target_owner_firm_id => 12
+
+    # test when access control keys match
+
+    # grant(any_class, any_priv)              - always true
+
+                                                                #XXX should foo be allowed here even if not declared on MyBlog?
+    single_grant_test( make_a_grant('any', :any), myblog_perm,  :grantable => [:any, :add_post, :messwith, :kill_post, :foo], 
+                                                                :not_grantable => [])
+    single_grant_test( make_a_grant('any', :any), anyclass_perm,:grantable => [:any, :messwith], 
+                                                                :not_grantable => [])
+    single_grant_test( make_a_grant('any', :any), myblog_ack_perm, :grantable => [:any, :add_post, :messwith, :kill_post], 
+                                                                :not_grantable => [])
+
+    # grant(any_class, named_priv) 
+    #     other_priv(any_class, any_priv)     - always false
+    #     other_priv(any_class, named_priv)   - false if grant.priv != other_priv.priv
+    #     other_priv(named_class, any_priv)   - always false
+    #     other_priv(named_class, named_priv) - false unless grant.grantable_privileges_for_class(other_priv.class).include?(other_priv.priv)
+
+    single_grant_test( make_a_grant('any', :add_post), myblog_perm,  :grantable => [:add_post, :messwith], 
+                                                                     :not_grantable => [:any, :kill_post, :foo])
+    single_grant_test( make_a_grant('any', :messwith), myblog_perm,  :grantable => [:messwith], 
+                                                                     :not_grantable =>[:any, :add_post, :kill_post, :foo])
+    single_grant_test( make_a_grant('any', :kill_post), myblog_perm, :grantable =>  [:kill_post], 
+                                                                     :not_grantable => [:any, :add_post, :messwith, :foo])
+    single_grant_test( make_a_grant('any', :add_post), anyclass_perm,:grantable => [:add_post], 
+                                                                     # note: add_post implies messwith for the MyBlog class but
+                                                                     # we can't assume that's true for 'any' class
+                                                                     :not_grantable => [:any, :kill_post, :messwith])
+    single_grant_test( make_a_grant('any', :foo), myblog_perm,  :grantable => [:foo],  #XXX should foo be allowed even if not declared on MyBlog?
+                                                                :not_grantable => [:any, :kill_post, :messwith, :bar])
+                                                         
+
+    # grant(named_class, any_priv)
+    #     other_priv(any_class, any_priv)     - always false
+    #     other_priv(any_class, named_priv)   - always false
+    #     other_priv(named_class, any_priv)   - false unless grant.class == other_priv.class
+    #     other_priv(named_class, named_priv) - false unless grant.class == other_priv.class 
+
+                                                                     #XXX should foo be allowed here even if not declared on MyBlog?
+    single_grant_test( make_a_grant(MyBlog, :any), myblog_perm,      :grantable => [:any, :add_post, :messwith, :kill_post, :foo], 
+                                                                     :not_grantable => [])
+    single_grant_test( make_a_grant(MyBlog, :any), myblogentry_perm, :grantable => [], 
+                                                                     :not_grantable => [:any, :create, :update, :add_post, :messwith, :kill_post])
+    single_grant_test( make_a_grant(MyBlog, :any), anyclass_perm,    :grantable => [], 
+                                                                     :not_grantable => [:any, :create, :update, :add_post, :messwith, :kill_post])
+
+    # grant(named_class, named_priv)
+    #     other_priv(any_class, any_priv)     - always false
+    #     other_priv(any_class, named_priv)   - always false
+    #     other_priv(named_class, any_priv)   - always false
+    #     other_priv(named_class, named_priv) - false unless ( grant.class == other_priv.class and 
+    #                                             grant.grantable_privileges_for_class(other_priv.class).include?(other_priv.priv) )
+
+    single_grant_test( make_a_grant(MyBlog, :add_post), myblog_perm,      :grantable => [:add_post, :messwith], 
+                                                                          :not_grantable => [:any, :kill_post, :foo])
+    single_grant_test( make_a_grant(MyBlog, :messwith), myblog_perm,      :grantable => [:messwith], 
+                                                                          :not_grantable => [:any, :add_post, :kill_post])
+    single_grant_test( make_a_grant(MyBlog, :kill_post), myblog_perm,     :grantable => [:kill_post], 
+                                                                          :not_grantable => [:any, :add_post, :messwith])
+    single_grant_test( make_a_grant(MyBlog, :add_post), myblogentry_perm, :grantable => [], 
+                                                                          :not_grantable => [:any, :add_post, :messwith, :kill_post, :create, :update])
+    single_grant_test( make_a_grant(MyBlog, :add_post), anyclass_perm,    :grantable => [], 
+                                                                          :not_grantable => [:any, :add_post, :messwith, :kill_post, :create, :update])
+    single_grant_test( make_a_grant(MyBlog, :foo), myblog_perm,           :grantable => [:foo],  #XXX should foo be allowed even if not declared on MyBlog?
+                                                                          :not_grantable => [:any, :kill_post, :messwith, :bar])
+
+    # test the access control keys
+    # target_owner_firm_id mismatch
+    myblog_ack_perm.target_owner_firm_id = 666
+    single_grant_test( make_a_grant('any', :any, :target_owner_firm_id => 100), myblog_ack_perm, 
+                                                                          :grantable => [], 
+                                                                          :not_grantable => [:add_post, :messwith, :kill_post, :any]) 
+    # now matches
+    myblog_ack_perm.target_owner_firm_id = 100
+    single_grant_test( make_a_grant('any', :any, :target_owner_firm_id => 100), myblog_ack_perm, 
+                                                                          :grantable => [:add_post, :messwith, :kill_post, :any], 
+                                                                          :not_grantable => [])
+
+  end
+
+  def single_grant_test(g, perm, opts) 
+
+    with_permission_novalidate(g) do
+      opts[:grantable].each do |p|
+        perm.privilege = p
+        assert g.can_grant?(perm), "#{g.inspect} should be able to grant #{p}"
+      end
+      opts[:not_grantable].each do |p|
+        perm.privilege = p
+        assert !g.can_grant?(perm), "#{g.inspect} should not be able to grant #{p}"
+      end
+    end
+  end
+
+  def test_grantable_privileges_for_class
+  # these are the declared privs for our test classes
+  myblog_all_declared = [:any, :add_post, :messwith, :kill_post, :permit_individually, :reassign].sort_by(&:to_s)
+  myblogentry_all_declared = [:any, :create, :update, :permit_individually, :reassign].sort_by(&:to_s)
+
+  # grant(any_class, any_priv)      - return all declared privs of klass 
+    g = make_a_grant('any', :any)
+    assert_equal myblog_all_declared, g.grantable_privileges_for_class(MyBlog).sort_by(&:to_s)
+    assert_equal myblogentry_all_declared, g.grantable_privileges_for_class(MyBlogEntry).sort_by(&:to_s)
+  # grant(any_class, named_priv)    - return named_priv + anything it implies
+    g = make_a_grant('any', :messwith)
+    assert_equal [:messwith], g.grantable_privileges_for_class(MyBlog).sort_by(&:to_s)
+    g = make_a_grant('any', :add_post)
+    assert_equal [:add_post, :messwith], g.grantable_privileges_for_class(MyBlog).sort_by(&:to_s)
+    #XXX should this be [] since MyBlogEntry does not declare the :add_post privilege?
+    assert_equal [:add_post], g.grantable_privileges_for_class(MyBlogEntry).sort_by(&:to_s)
+  # grant(named_class, any_priv)    - if named_class==klass return all declared privs of klass else return []
+    g = make_a_grant(MyBlog, :any)
+    assert_equal myblog_all_declared, g.grantable_privileges_for_class(MyBlog).sort_by(&:to_s)
+    assert_equal [], g.grantable_privileges_for_class(MyBlogEntry).sort_by(&:to_s)
+  # grant(named_class, named_priv)  - if named_class==klass return (named_priv + anything it implies) else return []
+    g = make_a_grant(MyBlog, :add_post)
+    assert_equal [:add_post, :messwith], g.grantable_privileges_for_class(MyBlog).sort_by(&:to_s)
+    assert_equal [], g.grantable_privileges_for_class(MyBlogEntry).sort_by(&:to_s)      # wrong class - return nothing
+    g = make_a_grant(MyBlog, :messwith)
+    assert_equal [:messwith], g.grantable_privileges_for_class(MyBlog).sort_by(&:to_s)
+    g = make_a_grant(MyBlog, :kill_post)
+    assert_equal [:kill_post], g.grantable_privileges_for_class(MyBlog).sort_by(&:to_s)
+    assert_equal [], g.grantable_privileges_for_class(MyBlogEntry).sort_by(&:to_s)      # wrong class - return nothing
+  end
+
   def test_grantable_privileges
 
     my_grant = Permission.new :target_class => MyBlog, :target => @mertz_blog,
@@ -236,19 +373,46 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
       :privilege => :add_post,
       :is_grant => true, :has_grant_option => false, 
       :target_owned_by_self => false
-    [addpost_any_grant, any_myblog_grant, any_any_grant].each do |g|
-      # hack -- with_permission() chokes on class_name="any"
-      with_test_role_for_unprivileged_guy(:no_grants) do |user, role|
-        User.as( users( :universal_grant_guy )) do
-          g.role = role
-          g.save(false) # <-- validator would fail here because of class_name="any"
-        end
-        user.permissions :force_reload
+    [any_myblog_grant, any_any_grant].each do |g|
+      with_permission_novalidate(g) do 
         assert_equal [:add_post, :messwith], simple_perm.alternate_privileges_for_edit.sort_by(&:to_s)
         assert_equal [:kill_post], kill_post_perm.alternate_privileges_for_edit.sort_by(&:to_s)
       end
     end
 
+    [addpost_any_grant].each do |g|
+      with_permission_novalidate(g) do 
+        assert_equal [:add_post, :messwith], simple_perm.alternate_privileges_for_edit.sort_by(&:to_s)
+        assert_equal [], kill_post_perm.alternate_privileges_for_edit.sort_by(&:to_s)
+      end
+    end
+
+  end
+
+
+  # hack to allow perms with class_name="any" (these would ordinarily fail validation)
+  def with_permission_novalidate( *perms )
+    with_test_role_for_unprivileged_guy( :no_grants ) do |user, role|
+      User.as( users(:universal_grant_guy) ) do
+        perms.each do |perm|
+          perm = perm.clone
+          perm.role = role
+          perm.save(false)  # <-- hack to allow class_name=any
+        end
+      end
+      user.permissions :force_reload
+      yield
+    end
+  end
+
+  def make_a_grant(klass, privilege, attrs={})
+    default_attrs = {:privilege => privilege, :is_grant => true, :has_grant_option => false, :target_owned_by_self => false}
+    if klass.is_a? Class
+      default_attrs[:target_class] = klass
+    else 
+      default_attrs[:class_name] = klass
+    end
+      Permission.new default_attrs.merge(attrs)
   end
 
 end
