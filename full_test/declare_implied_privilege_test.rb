@@ -192,10 +192,12 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
     simple_perm = messwith_grant.clone
     simple_perm.is_grant = false
 
+    # if the user can only grant :messwith they should not see the alternate priv :add_post
     with_permission( messwith_grant ) do
       assert_equal [:messwith], simple_perm.alternate_privileges_for_edit
     end
 
+    # if the user can grant :add_post they should see both alternate privs 
     [:messwith, :add_post].each do |priv|
 
       simple_perm.privilege = priv
@@ -205,7 +207,48 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
           simple_perm.alternate_privileges_for_edit.sort_by(&:to_s)
       end
     end
-    
+
+    # kill_post does not imply and is not implied by anything
+    # the only alternates returned should be the kill_post itself provided the user can grant it
+    kill_post_perm = messwith_grant.clone
+    kill_post_perm.privilege = :kill_post
+    kill_post_perm.is_grant = false
+    kill_post_grant = messwith_grant.clone
+    kill_post_grant.privilege = :kill_post
+    with_permission( kill_post_grant ) do
+      assert_equal [:kill_post], kill_post_perm.alternate_privileges_for_edit.sort_by(&:to_s)
+    end
+    with_permission( add_post_grant ) do  # don't have permission -- empty result
+      assert_equal [], kill_post_perm.alternate_privileges_for_edit.sort_by(&:to_s)
+    end
+
+    # test the case where the user has the powerful any privilege grant
+    # the only alternates to be returned are privs that imply or are implied by this priv
+    any_myblog_grant = Permission.new :target_class => MyBlog, 
+      :privilege => :any,
+      :is_grant => true, :has_grant_option => false, 
+      :target_owned_by_self => false
+    any_any_grant = Permission.new :class_name => "any", 
+      :privilege => :any,
+      :is_grant => true, :has_grant_option => false, 
+      :target_owned_by_self => false
+    addpost_any_grant = Permission.new :class_name => "any", 
+      :privilege => :add_post,
+      :is_grant => true, :has_grant_option => false, 
+      :target_owned_by_self => false
+    [addpost_any_grant, any_myblog_grant, any_any_grant].each do |g|
+      # hack -- with_permission() chokes on class_name="any"
+      with_test_role_for_unprivileged_guy(:no_grants) do |user, role|
+        User.as( users( :universal_grant_guy )) do
+          g.role = role
+          g.save(false) # <-- validator would fail here because of class_name="any"
+        end
+        user.permissions :force_reload
+        assert_equal [:add_post, :messwith], simple_perm.alternate_privileges_for_edit.sort_by(&:to_s)
+        assert_equal [:kill_post], kill_post_perm.alternate_privileges_for_edit.sort_by(&:to_s)
+      end
+    end
+
   end
 
 end

@@ -177,6 +177,7 @@ module SmartguardBasicPermission
   end
 
   # Privileges (if any) that this permission allows a user to grant.
+  # NOTE: if the grant is for any class we can't figure out any implied privs
 
   def grantable_privileges
     return [] if !self.is_grant?
@@ -253,6 +254,7 @@ module SmartguardBasicPermission
     return false if self.class_name != 'any' &&
                     self.class_name != other_perm.class_name 
     return false if self.privilege != :any &&
+                    self.class_name != 'any' &&
                     !self.grantable_privileges.include?( other_perm.privilege )
 
     self.class.target_access_control_keys.each do |attr|
@@ -276,13 +278,26 @@ module SmartguardBasicPermission
 
   end
 
+  # return privileges that imply or are implied by self (includes self.privilege)
+  def alternate_implied_privileges
+    if self.class_name == 'any'
+      return [self.privilege] 
+    end
+    klass = self.target_class
+    return [self.privilege] + klass.sg_priv_to_implied_privs[self.privilege] + klass.sg_implied_priv_to_privs[self.privilege]
+  end
+
   # If editing a role, the user might be able to replace the
   # privilege of this permission with others.  If so, this will
   # be the full list of alternatives.
+  # What we really want here is the list of privs that imply or are implied by this one
+  # PROVIDED that the current user has the power to grant them.
 
   def alternate_privileges_for_edit( user = User.current )
-    applicable_grants = user.permissions.select{|grant| grant.can_grant?(self)}
-    applicable_grants.collect( &:grantable_privileges ).flatten
+    applicable_grants = user.permissions.select{|grant| grant.can_grant?(self)}  # grants that could grant this priv
+    candidate_privs = self.alternate_implied_privileges.flatten.uniq             # privs that imply or are implied by this one
+    tmp_perm = self.clone
+    candidate_privs.select { |p| applicable_grants.find {|g| tmp_perm.privilege = p; g.can_grant?(tmp_perm) } } # make sure user has the power to grant       
   end
     
 end
