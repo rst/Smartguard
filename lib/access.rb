@@ -625,7 +625,7 @@ module Access
       else
         log_hash[:success] = true
         Smartguard::Logging.log( log_hash )
-        logger.info "=== #{log_text}"
+        logger.debug "=== #{log_text}"
       end
       self
     end
