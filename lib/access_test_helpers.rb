@@ -116,30 +116,6 @@ module Access
   end
 
   # :call-seq:
-  #   with_permission( perm[, perm, ...] ) { code; code... }
-  #
-  # Run the code in an environment with User.current set to a user
-  # with the given permissions, and no others.  Permissions are
-  # unaffected; they are internally cloned and destroyed.
-
-  def with_permission( *perms )
-
-    with_test_role_for_unprivileged_guy( :no_grants ) do |user, role|
-
-      User.as( users(:universal_grant_guy) ) do
-        perms.each do |perm|
-          perm = perm.clone
-          perm.role = role
-          perm.save!
-        end
-      end
-
-      yield
-
-    end
-  end
-
-  # :call-seq:
   #   assert_requires (perm, perm, ...) { code; code ... } 
   #
   # Tests that a role with the all the given permissions correctly grants
