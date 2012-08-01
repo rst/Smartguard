@@ -63,7 +63,7 @@ module Access
               else
                 inp_flag = @options[:if_not_permitted] || :disable
                 case inp_flag
-                when :disable :
+                when :disable then
                   saved_object_name = @object_name
                   begin
                     @object_name=('disabled_'+saved_object_name.to_s).to_sym
@@ -72,7 +72,7 @@ module Access
                   ensure
                     @object_name = saved_object_name
                   end
-                when :present_text :
+                when :present_text then
                   val = @object.send attr
                   #{display_val_code}
                 else

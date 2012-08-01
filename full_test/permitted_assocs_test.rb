@@ -23,7 +23,7 @@ require File.dirname(__FILE__) + '/abstract_unit'
 
 class PhonyPatBlog < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include FullTestAccessControl
   owner_attrs_and_validations
@@ -35,7 +35,7 @@ end
 
 class PhonyPatEntry < ActiveRecord::Base
 
-  set_table_name 'blog_entries'
+  self.table_name = 'blog_entries'
 
   include FullTestAccessControl
   owner_attrs_and_validations

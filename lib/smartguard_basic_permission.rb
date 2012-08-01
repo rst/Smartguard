@@ -60,6 +60,9 @@ module SmartguardBasicPermission
     klass.validates_inclusion_of :is_grant,             :in => [true, false]
     klass.validates_inclusion_of :has_grant_option,     :in => [true, false]
     klass.validates_inclusion_of :target_owned_by_self, :in => [true, false]
+    klass.validate :validate_class_name
+
+    klass.declare_attribute_block_set_groups ['class_name', 'target_class']
 
     # Before any save, check that the current user has an applicable grant.
 
@@ -90,7 +93,7 @@ module SmartguardBasicPermission
     write_attribute 'privilege', val.to_s
   end
   
-  def validate
+  def validate_class_name
 
     class_name_ok = false
 
@@ -345,7 +348,7 @@ module SmartguardBasicPermission
   def alternate_privileges_for_edit( user = User.current )
     applicable_grants = user.permissions.select{|grant| grant.can_grant?(self)}  # grants that could grant this priv
     candidate_privs = self.alternate_implied_privileges.flatten.uniq             # privs that imply or are implied by this one
-    tmp_perm = self.clone
+    tmp_perm = self.dup
     candidate_privs.select { |p| applicable_grants.find {|g| tmp_perm.privilege = p; g.can_grant?(tmp_perm) } } # make sure user has the power to grant       
   end
     

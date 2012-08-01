@@ -30,11 +30,11 @@ class RoleAssignmentTest < ActiveSupport::TestCase
     ra = RoleAssignment.new
 
     assert_requires( one_object_perm( :administer, users(:lucy))) do
-      test_required_associate ra, :user, users(:lucy)
+      do_test_required_associate ra, :user, users(:lucy)
     end
 
     assert_requires( one_object_perm( :assign, roles(:ricardo_twiddler))) do
-      test_required_associate ra, :role, roles(:ricardo_twiddler)
+      do_test_required_associate ra, :role, roles(:ricardo_twiddler)
     end
 
     assert_valid ra

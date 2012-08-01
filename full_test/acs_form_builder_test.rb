@@ -24,7 +24,7 @@ require File.dirname(__FILE__) + '/abstract_unit'
 
 class AcPhonyBlog < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include Access::Controlled
 
@@ -56,6 +56,16 @@ class AcsFormBuilderTest < ActionController::TestCase
 
   use_all_fixtures
 
+  # Support for testing form builders, which requires 'form_for', which
+  # in turn tries to access 'output_buffer'.  I didn't want to do anything
+  # as crude as just slapping in an "attr_accessor :output_buffer", so 
+  # instead, I went to see how a serious project does it, and looked at
+  # the spec support for Formtastic.  
+  #
+  # They've got the same issue, and here's what they do...
+
+  attr_accessor :output_buffer
+
   def test_everything_wrapped
 
     # Identify methods that actually name tag helpers ---
@@ -68,8 +78,9 @@ class AcsFormBuilderTest < ActionController::TestCase
     # It works.  For the moment.
 
     fbuilder = ActionView::Helpers::FormBuilder
-    meth_names = 
+    meth_name_syms = 
       fbuilder.instance_methods - fbuilder.superclass.instance_methods
+    meth_names = meth_name_syms.collect( &:to_s )
     setters = meth_names.grep( /=$/ )
     attrs   = setters.collect &:chop
     helpers = meth_names - setters - attrs
@@ -533,8 +544,8 @@ class AcsFormBuilderTest < ActionController::TestCase
                    name="disabled_blog[guarded_number]"
              ><optgroup label="Manchester United"
                ><option value="2">Claude</option>
-                <option value="3" selected="selected">James</option></optgroup>
-              <optgroup label="Real Madrid"
+                <option value="3" selected="selected">James</option></optgroup
+             ><optgroup label="Real Madrid"
                 ><option value="4">Billingsley</option></optgroup></select>
         EOD
 
@@ -549,8 +560,8 @@ class AcsFormBuilderTest < ActionController::TestCase
            <select id="blog_guarded_number" name="blog[guarded_number]"
              ><optgroup label="Manchester United"
                ><option value="2">Claude</option>
-                <option value="3" selected="selected">James</option></optgroup>
-              <optgroup label="Real Madrid"
+                <option value="3" selected="selected">James</option></optgroup
+             ><optgroup label="Real Madrid"
                ><option value="4">Billingsley</option></optgroup></select>
         EOD
 

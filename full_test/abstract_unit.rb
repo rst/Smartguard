@@ -42,10 +42,13 @@ rescue LoadError
   retry
 end
 
+ActiveSupport::Dependencies.autoload_paths += 
+  [ File.dirname(__FILE__) + '/models' ]
+
 require(File.dirname(__FILE__) + '/../init.rb')
 
 config = YAML::load(IO.read(File.dirname(__FILE__) + '/database.yml'))
-ActiveRecord::Base.colorize_logging = false
+#ActiveRecord::Base.colorize_logging = false
 ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + "/debug.log")
 
 selected_config = config[ENV['DB'] || 'sqlite']

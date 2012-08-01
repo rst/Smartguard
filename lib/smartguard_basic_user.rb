@@ -39,10 +39,27 @@ module SmartguardBasicUser
       undef_method :roles
       self.has_many :roles, 
         #:through => :role_assignments,
-        :finder_sql => 'select * from roles where id in ' +
-                        role_assigned_cond('#{id}'),
-        :counter_sql => 'select count(*) from roles where id in ' +
-                        role_assigned_cond('#{id}')
+        :finder_sql => Proc.new {
+          sanitize_sql ['select * from roles where id in ' +
+                          self.class.role_assigned_cond(':id'),
+                        {:id => id}]
+        },
+        :counter_sql => Proc.new {
+          sanitize_sql ['select count(*) from roles where id in ' +
+                          self.class.role_assigned_cond(':id'),
+                        {:id => id}]
+        }
+
+      # Apparently, 'undef_method' doesn't just undefine the method,
+      # it puts in a "no such method here" stub that hides the method
+      # that 'has_many' defines on our GeneratedFeatureMethods module.
+      # So, we have to explicitly forward it here.  Gaaaaaah!
+
+      meth = generated_feature_methods.instance_method( :roles )
+      define_method :roles do | *args |
+        meth.bind( self ).call( *args )
+      end
+
       @have_roles_assoc = :true
     end
 
@@ -282,7 +299,7 @@ module SmartguardBasicUser
       next if p.class_name.to_sym == :any
       next unless p.target_class_exists?
       p.target_class.sg_priv_to_implied_privs[p.privilege].each do |pi|
-	p_new = p.clone
+	p_new = p.dup
 	p_new.privilege = pi
 	implied_permissions << p_new
 	end

@@ -53,11 +53,10 @@ class PermissionFailure < SecurityError
       end
 
       if target.is_a?( ActiveRecord::Base )
-        targ_id = target.id
-        if targ_id.nil?
+        if target.new_record?
           message += "(UNSAVED)"
         else
-          message += "(" + targ_id.to_s + ")"
+          message += "(" + target.id.to_s + ")"
         end
       end
     end
@@ -94,6 +93,13 @@ module Access
       klass.class_inheritable_accessor :sg_reflected_privileges
       klass.class_inheritable_reader :sg_deferred_permission_wrappers
 
+      klass.class_inheritable_accessor :sg_implied_priv_to_privs, :instance_writer => false
+      klass.class_inheritable_accessor :sg_priv_to_implied_privs, :instance_writer => false
+      klass.sg_implied_priv_to_privs = Hash.new { |h,k| h[k] = Array.new }
+      klass.sg_priv_to_implied_privs = Hash.new { |h,k| h[k] = Array.new }
+
+      klass.extend Access::RequirePrivilege::ClassMethods
+
       # And set up defaults for some of these, in base classes only.
       # (Don't re-set-up defaults if they're being inherited!)
 
@@ -110,14 +116,35 @@ module Access
 
       end
 
-      klass.class_inheritable_accessor :sg_implied_priv_to_privs, :instance_writer => false
-      klass.class_inheritable_accessor :sg_priv_to_implied_privs, :instance_writer => false
-      klass.sg_implied_priv_to_privs = Hash.new { |h,k| h[k] = Array.new }
-      klass.sg_priv_to_implied_privs = Hash.new { |h,k| h[k] = Array.new }
-
     end
 
     module ClassMethods
+
+      def class_inheritable_accessor( sym, opts = {} )
+        class_attribute sym, opts
+      end
+
+      def class_inheritable_reader( sym )
+        class_attribute sym, :instance_writer => false
+      end
+
+      def write_inheritable_attribute( sym, val )
+        self.send( (sym.to_s + '='), val )
+      end
+
+      def read_inheritable_attribute( sym )
+        self.send( sym )
+      end
+
+      def write_inheritable_array(key, elements)
+        write_inheritable_attribute(key, []) if read_inheritable_attribute(key).nil?
+        write_inheritable_attribute(key, read_inheritable_attribute(key) + elements)
+      end
+
+      def write_inheritable_hash(key, hash)
+        write_inheritable_attribute(key, {}) if read_inheritable_attribute(key).nil?
+        write_inheritable_attribute(key, read_inheritable_attribute(key).merge(hash))
+      end
 
       # Sole argument is an array of strings that name attributes that
       # are possible access keys for this class.  Note, if 'foo' is
@@ -273,7 +300,7 @@ module Access
           END_SQL
         else
           klass = self.class_for_associate(association)
-          fk = self.reflect_on_association(association).primary_key_name.to_s
+          fk = self.reflect_on_association(association).foreign_key.to_s
           return <<-END_SQL
             (#{table_name}.#{fk} in
              #{klass.ids_permitting_internal( priv, keyword_args )})
@@ -295,7 +322,7 @@ module Access
           return self.ids_permitting_internal( priv, keyword_args.merge( :distinct => true ))
         else
           klass = self.class_for_associate(association)
-          fk = self.reflect_on_association(association).primary_key_name.to_s
+          fk = self.reflect_on_association(association).foreign_key.to_s
           return <<-END_SQL
             (select id from #{table_name} where #{table_name}.#{fk} in
              #{klass.ids_permitting_internal( priv, keyword_args )})
@@ -530,8 +557,6 @@ module Access
           return true;
         end
       end
-
-      include Access::RequirePrivilege::ClassMethods
 
       # Memoized versions of base_class and base_class.name
 

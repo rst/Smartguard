@@ -25,6 +25,9 @@ class BlogEntry < ActiveRecord::Base
 
   owner_attrs_and_validations
 
+  declare_attribute_block_set_groups FullTestAccessControl::OWNER_ATTRS_GROUP,
+    ['blog', 'blog_id']
+
   belongs_to :blog
   validates_presence_of :blog
   validates_presence_of :entry_txt

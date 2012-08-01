@@ -23,7 +23,7 @@ require File.dirname(__FILE__) + '/abstract_unit'
 
 class PhonyBlog < ActiveRecord::Base
 
-  set_table_name 'blogs'        # already exists; what the hell...
+  self.table_name = 'blogs'        # already exists; what the hell...
 
   include Access::Controlled
   owner_attrs_and_validations :include_privs => false
@@ -63,7 +63,7 @@ end
 
 class PhonyNoPerms < ActiveRecord::Base
 
-  set_table_name 'blogs'        # already exists; what the hell...
+  self.table_name = 'blogs'        # already exists; what the hell...
 
   include Access::Controlled
   owner_attrs_and_validations :include_privs => false
@@ -72,7 +72,7 @@ end
 
 class PhonyWithCallbacks < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include Access::Controlled
   owner_attrs_and_validations
@@ -86,7 +86,7 @@ end
 
 class PhonyWithEponymous < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include Access::Controlled
   owner_attrs_and_validations
@@ -98,7 +98,7 @@ end
 
 class PhonyWithForAction < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include Access::Controlled
   owner_attrs_and_validations
@@ -112,7 +112,7 @@ end
 
 class PhonyWithInitSet < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include Access::Controlled
   owner_attrs_and_validations
@@ -129,7 +129,7 @@ end
 
 class PhonyNeverPermits < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include Access::Controlled
   owner_attrs_and_validations :include_privs => false
@@ -140,7 +140,7 @@ end
 
 class PhonyWithDefaults < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include Access::Controlled
   owner_attrs_and_validations :default_from_current_user => true
@@ -151,13 +151,13 @@ end
 # which tweaks them in the course of running the test...
 
 class PhonyReqPermBlog < ActiveRecord::Base
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
   include Access::Controlled
 end
 
 class PhonyReqPermEntry < ActiveRecord::Base
 
-  set_table_name 'blog_entries'
+  self.table_name = 'blog_entries'
   include Access::Controlled
   belongs_to :blog, :class_name => 'PhonyReqPermBlog', 
                     :foreign_key => 'blog_id'
@@ -167,7 +167,7 @@ class PhonyReqPermEntry < ActiveRecord::Base
 end
 
 class PhonyReqPermComment < ActiveRecord::Base
-  set_table_name 'entry_comments'
+  self.table_name = 'entry_comments'
   include Access::Controlled
   belongs_to :entry, :class_name => 'PhonyReqPermEntry',
                      :foreign_key => 'blog_entry_id'
@@ -455,11 +455,11 @@ class RequirePermTest < ActiveSupport::TestCase
     # This will start failing if they fix the bug...
     # assert_equal my_entry_a, my_comment.blog_entry
 
-    assert_requires( aperm_kill, bperm_add ) do
-      my_comment.blog_entry = my_entry_b
+    assert_requires( bperm_kill, aperm_add ) do
+      my_comment.blog_entry = my_entry_a
     end
 
-    assert_requires( bperm_kill ) do
+    assert_requires( aperm_kill ) do
       my_comment.blog_entry = nil
     end
 
@@ -496,7 +496,7 @@ class RequirePermTest < ActiveSupport::TestCase
 
     common_callback_test( PhonyWithCallbacks )
 
-    assert_raises( ArgumentError ) do 
+    assert_raises( NoMethodError ) do 
       PhonyWithCallbacks.require_privilege :heat, :at_callback => :before_bake
     end
 

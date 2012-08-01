@@ -88,7 +88,7 @@ class PermissioningTest < ActiveSupport::TestCase
     tweaks.each do | attr, tweaked_val |
       old_val = perm.send attr
       perm.send( ((attr.to_s + '=').to_sym), tweaked_val )
-      perm.save_without_validation
+      perm.save :validate => false
       msg = msg_base + attr.to_s + ' = ' + tweaked_val.to_s
       begin
         yield msg
@@ -428,7 +428,7 @@ class PermissioningTest < ActiveSupport::TestCase
       # assigned to *our* user that make a difference...
 
       perms_sets.each do |perms_set|
-        roles(:ricardo_twiddler).permissions << perms_set.last.clone
+        roles(:ricardo_twiddler).permissions << perms_set.last.dup
       end
 
       # Actual tests:
@@ -464,7 +464,7 @@ class PermissioningTest < ActiveSupport::TestCase
 
   def assert_grant_queries_work_one_perm( op, user, role, recs, perm )
 
-    perm = perm.clone           # work on a scratch copy
+    perm = perm.dup             # work on a scratch copy
 
     assert_not_equal 0, recs.size
     assert perm.allows?( recs.first, op, User.current )
@@ -562,7 +562,7 @@ class PermissioningTest < ActiveSupport::TestCase
     
     # Actually do the work...
 
-    perm = perm.clone           # work on a scratch copy
+    perm = perm.dup             # work on a scratch copy
     perm.role = role
     perm.save!
 
@@ -714,7 +714,7 @@ class PermissioningTest < ActiveSupport::TestCase
 
   def assert_perms_work_in_combination( op, user, role, recs, perms )
 
-    perms = perms.collect &:clone # work on scratch copies
+    perms = perms.collect &:dup # work on scratch copies
 
     perms.each { |perm| perm.role = role; perm.save! }
 
@@ -855,8 +855,7 @@ class PermissioningTest < ActiveSupport::TestCase
 
       begin
         blogs(:mertz_blog).check_permission!( :grok )
-      rescue
-        err = $!
+      rescue PermissionFailure => err
         assert err.is_a?( PermissionFailure )
         assert_equal "not authorized to grok blog mertz family blog (1)", 
                      err.message
@@ -916,12 +915,12 @@ class PermissioningTest < ActiveSupport::TestCase
       new_perm.role = roles(:ricardo_twiddler)
     end
 
-    klone = new_perm.clone
+    klone = new_perm.dup
 
     assert_requires( grant_perm ) do
       klone.save!
     end
-      
+
     assert_requires( grant_perm ) do
       klone.reload.save!
     end
@@ -933,7 +932,7 @@ class PermissioningTest < ActiveSupport::TestCase
       
     assert_raises( PermissionFailure ) do 
       User.as( users( :lucy )) do
-        new_perm.clone.save! 
+        new_perm.dup.save! 
       end
     end
 

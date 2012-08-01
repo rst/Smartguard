@@ -29,6 +29,8 @@ class LineItem < ActiveRecord::Base
     include Access::Controlled
     belongs_to :report
     require_privilege :update, :on_associated=> :report, :for_action => :update
+    declare_attribute_block_set_groups FullTestAccessControl::OWNER_ATTRS_GROUP,
+      ['report', 'report_id']
 
   end
 

@@ -427,10 +427,6 @@ module Access
 
         at_callback.each do |callback|
           callback = callback.to_sym
-          if !ActiveRecord::Callbacks::CALLBACKS.include?( callback.to_s )
-            raise ArgumentError, 
-              "#{callback.inspect} is not an ActiveRecord callback"
-          end
           if callback == :after_find || callback == :after_initialize
             if !self.method_defined?( callback )
               define_method( callback ){}
@@ -479,7 +475,7 @@ module Access
         raise "huh?" unless self.method_defined?( assoc_name )
 
         reflection = self.reflect_on_association( assoc_name )
-        fk = reflection.primary_key_name.to_sym
+        fk = reflection.foreign_key.to_sym
 
         setter_method     = (assoc_name.to_s + '=').to_sym
         old_setter_method = (assoc_name.to_s + '_without_assoc_chks=').to_sym
@@ -523,7 +519,7 @@ module Access
 
         self.before_destroy do |rec|
 
-          klass = class_for_associate(assoc_name)
+          klass = rec.class.class_for_associate(assoc_name)
           rec_class_name = rec.class.base_class_for_associate(assoc_name)
 
           if !klass.respond_to?( :associate_privilege )
@@ -564,7 +560,7 @@ module Access
       end
 
       def attribute_block_set_groups # :nodoc:
-        read_inheritable_attribute( :attribute_block_set_groups )
+        []                           # overridden by class_attribute stuff
       end
 
       # Returns true if the user could ever create an object
@@ -602,7 +598,7 @@ module Access
 
         reflect_on_all_associations( :belongs_to ).each do |assoc|
 
-          foreign_key = assoc.primary_key_name.to_s # sigh...
+          foreign_key = assoc.foreign_key.to_s # sigh...
           column_desc = columns.detect { |col| col.name == foreign_key }
 
           # If the column is a foreign key with a NOT NULL constraint,
@@ -671,10 +667,11 @@ module Access
 
       def hack_rp_arg( arg )
         case arg
-        when Enumerable: arg
-        when nil:        []
-        when Symbol:     [arg]
-        else raise ArgumentException, 
+        when String     then [arg]
+        when Enumerable then arg
+        when nil        then []
+        when Symbol     then [arg]
+        else raise ArgumentError, 
           "Funny #{arg.inspect} in args to require_permission"
         end
       end
@@ -738,7 +735,7 @@ module Access
       # attributes= wrapper which honors attribute_block_set_groups
       # (from the class level)
 
-      def attributes=( new_attributes )  # :nodoc:
+      def assign_attributes( new_attributes, options = {} )  # :nodoc:
 
         return if new_attributes.nil?
         new_attrs = new_attributes.dup
@@ -752,11 +749,11 @@ module Access
             end
           end
           if blok_attrs.size > 0
-            super blok_attrs
+            super blok_attrs, options
           end
         end
 
-        super new_attrs
+        super new_attrs, options
         
       end
 
@@ -920,7 +917,7 @@ module Access
         # a save...
 
         reflection = self.class.reflect_on_association( assoc_name )
-        foreign_key = reflection.primary_key_name.to_s
+        foreign_key = reflection.foreign_key.to_s
 
         if self.class.access_control_keys.include?( foreign_key )
 

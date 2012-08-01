@@ -261,7 +261,7 @@ class StiTest < ActiveSupport::TestCase
   def test_derived_class_permissions_invalid
     p = wildcard_perm( :find, BillingReport )
     assert !p.valid?
-    assert_match /STI base/, p.errors.on('class_name')
+    assert_match /STI base/, p.errors['class_name'].inspect
   end
 
 

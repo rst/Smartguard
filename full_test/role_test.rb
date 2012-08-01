@@ -29,17 +29,17 @@ class RoleTest < ActiveSupport::TestCase
 
     r = Role.new
 
-    test_validation r, :owner_firm, :invalid => [nil], 
+    do_test_validation r, :owner_firm, :invalid => [nil], 
       :valid => [firms(:mertz)]
 
-    test_validation r, :owner, :invalid => [nil], 
+    do_test_validation r, :owner, :invalid => [nil], 
       :valid => [users(:ethel)]
 
     # Name --- we test scoping; Mertz firm has an admin role already, so
     # can't create another, but we can create a 'twiddler' role, even though
     # Ricardo already has one.
 
-    test_validation r, :name, 
+    do_test_validation r, :name, 
       :invalid => ['', 'x', 'ab', 'admin', 'x' * 101],
       :valid   => ['twiddler', 'x' * 100]
 

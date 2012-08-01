@@ -31,18 +31,18 @@ module Access
   # that the invalid values all flunk.  Leaves the attribute in
   # the last valid state.
 
-  def test_validation(rec, field, opts)
+  def do_test_validation(rec, field, opts)
     assign = "#{field}="
     opts[:invalid].each do |val|
       rec.send assign, val
       assert !rec.valid?, "#{rec.class} with #{field}=#{val.inspect} should be invalid"
-      assert rec.errors.invalid?(field),
+      assert rec.errors.include?(field),
         "#{val.inspect} shouldn't be valid for #{rec.class}.#{field}"
     end
     opts[:valid].each do |val|
       rec.send assign, val
       rec.valid?
-      assert !rec.errors.invalid?(field),
+      assert !rec.errors.include?(field),
         "#{val.inspect} should be valid for #{rec.class}.#{field}" + 
         "\n(#{rec.errors[field].inspect})"
     end
@@ -51,8 +51,8 @@ module Access
   # Tests that the record isn't valid if the attribute is unset,
   # and becomes valid if it gets set to the given value.
 
-  def test_required_associate(rec, attr, value)
-    test_validation rec, attr, :invalid => [nil], :valid => [value]
+  def do_test_required_associate(rec, attr, value)
+    do_test_validation rec, attr, :invalid => [nil], :valid => [value]
   end
 
   # :call-seq:
@@ -128,7 +128,7 @@ module Access
   # that no individual permission is enough to grant the required
   # access, but that collectively, they all do.
   #
-  # Argument Permissions are cloned; the originals are unaltered
+  # Argument Permissions are 'dup'ed; the originals are unaltered
   # on return.
 
   def assert_requires( *priv_or_privs )
@@ -150,7 +150,7 @@ module Access
         # check that it works.
 
         User.as( users(:universal_grant_guy) ) do
-          priv = priv_or_privs.first.clone
+          priv = priv_or_privs.first.dup
           priv.role = role
           priv.save!
           user.permissions :force_reload
@@ -163,7 +163,7 @@ module Access
         # Multiple privileges.  Make sure each individually doesn't
         # grant access...
 
-        privs = priv_or_privs.collect &:clone
+        privs = priv_or_privs.collect &:dup
         privs.each do |priv|
 
           User.as( users(:universal_grant_guy) ) do
@@ -220,7 +220,7 @@ module Access
   def with_permission( perm_or_perms )
 
     perms = perm_or_perms.is_a?( Permission ) ? [perm_or_perms] : perm_or_perms
-    perms = perms.collect &:clone
+    perms = perms.collect &:dup
 
     with_test_role_for_unprivileged_guy(:no_grants) do |user, role|
 

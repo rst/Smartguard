@@ -30,18 +30,18 @@ class PermissionTest < ActiveSupport::TestCase
     p = Permission.new
 
     assert_requires( one_object_perm( :edit, roles(:mertz_admin))) do
-      test_validation p, :role, :invalid=>[nil], :valid=>[roles(:mertz_admin)]
+      do_test_validation p, :role, :invalid=>[nil], :valid=>[roles(:mertz_admin)]
     end
 
     [ :is_grant, :has_grant_option, :target_owned_by_self ].each do |attr|
-      test_validation p, attr, :invalid=>[nil], :valid => [true, false]
+      do_test_validation p, attr, :invalid=>[nil], :valid => [true, false]
     end
 
-    test_validation p, :class_name,   
+    do_test_validation p, :class_name,   
       :invalid => [nil, '', 'raise ArgumentException', 'NoSuchClass', 'Time'],
       :valid   => ['Blog']
 
-    test_validation p, :privilege, 
+    do_test_validation p, :privilege, 
       :invalid => [nil, 'bogon', :foo],
       :valid   => [:post, :grok, :any]
 

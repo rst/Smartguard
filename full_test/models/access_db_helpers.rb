@@ -102,7 +102,7 @@ module Access
         end
 
         if opt_args[:default_from_current_user]
-          before_validation_on_create do |rec|
+          before_validation( :on => :create ) do |rec|
             unless User.current.nil?
               rec.owner      = User.current      if rec.owner.nil?
               rec.owner_firm = User.current.firm if rec.owner_firm.nil?

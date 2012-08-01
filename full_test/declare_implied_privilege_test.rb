@@ -5,7 +5,7 @@ require File.dirname(__FILE__) + '/abstract_unit'
 
 class MyBlog < ActiveRecord::Base
 
-  set_table_name 'blogs'
+  self.table_name = 'blogs'
 
   include FullTestAccessControl
   owner_attrs_and_validations
@@ -20,7 +20,7 @@ end
 
 class MyBlogEntry < ActiveRecord::Base
 
-  set_table_name 'blog_entries'
+  self.table_name = 'blog_entries'
 
   include FullTestAccessControl
   owner_attrs_and_validations
@@ -144,7 +144,7 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
       :is_grant => true, :has_grant_option => false, 
       :target_owned_by_self => false
 
-    my_perm = my_grant.clone
+    my_perm = my_grant.dup
 
     my_perm.is_grant = false
     assert my_grant.can_grant?( my_perm )
@@ -323,10 +323,10 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
       :is_grant => true, :has_grant_option => false, 
       :target_owned_by_self => false
 
-    add_post_grant = messwith_grant.clone
+    add_post_grant = messwith_grant.dup
     add_post_grant.privilege = :add_post
 
-    simple_perm = messwith_grant.clone
+    simple_perm = messwith_grant.dup
     simple_perm.is_grant = false
 
     # if the user can only grant :messwith they should not see the alternate priv :add_post
@@ -347,10 +347,10 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
 
     # kill_post does not imply and is not implied by anything
     # the only alternates returned should be the kill_post itself provided the user can grant it
-    kill_post_perm = messwith_grant.clone
+    kill_post_perm = messwith_grant.dup
     kill_post_perm.privilege = :kill_post
     kill_post_perm.is_grant = false
-    kill_post_grant = messwith_grant.clone
+    kill_post_grant = messwith_grant.dup
     kill_post_grant.privilege = :kill_post
     with_permission( kill_post_grant ) do
       assert_equal [:kill_post], kill_post_perm.alternate_privileges_for_edit.sort_by(&:to_s)
@@ -395,9 +395,9 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
     with_test_role_for_unprivileged_guy( :no_grants ) do |user, role|
       User.as( users(:universal_grant_guy) ) do
         perms.each do |perm|
-          perm = perm.clone
+          perm = perm.dup
           perm.role = role
-          perm.save(false)  # <-- hack to allow class_name=any
+          perm.save(:validate => false)
         end
       end
       user.permissions :force_reload

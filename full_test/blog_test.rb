@@ -29,14 +29,14 @@ class BlogTest < ActiveSupport::TestCase
 
     b = Blog.new
 
-    test_validation b, :owner_firm, :invalid => [nil], 
+    do_test_validation b, :owner_firm, :invalid => [nil], 
       :valid => [firms(:mertz)]
-    test_validation b, :owner, :invalid => [nil], 
+    do_test_validation b, :owner, :invalid => [nil], 
       :valid => [users(:ethel)]
 
     # Name --- we test scoping; unique only within "firms"
 
-    test_validation b, :name, 
+    do_test_validation b, :name, 
       :invalid => [nil, '', 'x', 'ab', 'mertz family blog', 'x' * 101],
       :valid   => ['ricardo family blog', 'x' * 100]
 
