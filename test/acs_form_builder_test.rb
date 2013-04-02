@@ -185,13 +185,15 @@ class AcsFormBuilderTest < ActionController::TestCase
         assert_dom_equal( trim(<<-EOD), f.text_area( :name ) )
            <textarea disabled="disabled" id="disabled_blog_name" 
                   name="disabled_blog[name]" rows="20" cols="40" 
-            >fred the blog</textarea>
+            >
+fred the blog</textarea>
         EOD
 
         assert_dom_equal( trim(<<-EOD), f.text_area( :name, :rows => 7 ) )
            <textarea disabled="disabled" id="disabled_blog_name" 
                   name="disabled_blog[name]" rows="7" cols="40" 
-            >fred the blog</textarea>
+            >
+fred the blog</textarea>
         EOD
 
         # Now, with privileges:
@@ -201,12 +203,14 @@ class AcsFormBuilderTest < ActionController::TestCase
       
         assert_dom_equal( trim(<<-EOD), f.text_area( :name ) )
            <textarea id="blog_name" name="blog[name]" rows="20" cols="40" 
-            >fred the blog</textarea>
+            >
+fred the blog</textarea>
         EOD
 
         assert_dom_equal( trim(<<-EOD), f.text_area( :name, :rows => 7 ) )
            <textarea id="blog_name" name="blog[name]" rows="7" cols="40" 
-            >fred the blog</textarea>
+            >
+fred the blog</textarea>
         EOD
 
       end
@@ -323,21 +327,19 @@ class AcsFormBuilderTest < ActionController::TestCase
         check_html = check_html.gsub( /<input name="disabled[^>]*>/, '' )
 
         assert_dom_equal( trim(<<-EOD), check_html )
-            <input checked="checked" disabled="disabled" 
-                   id="disabled_blog_guarded_number" 
-                   name="disabled_blog[guarded_number]" type="checkbox" 
-                   value="1"
-             />
+             <input disabled="disabled" name="disabled_blog[guarded_number]" 
+                    type="hidden" value="0" 
+             /><input checked="checked" disabled="disabled" 
+                       id="disabled_blog_guarded_number" 
+                       name="disabled_blog[guarded_number]" 
+                       type="checkbox" value="1" />
         EOD
         cbox_txt = f.check_box( :guarded_bool_false, {}, true, false )
         assert_dom_equal( trim(<<-EOD), cbox_txt)
-           <input name="disabled_blog[guarded_bool_false]" 
-                     type="hidden" value="false"
-            /><input disabled="disabled" id="disabled_blog_guarded_bool_false" 
-                  name="disabled_blog[guarded_bool_false]" type="checkbox" 
-                  value="true" 
-            />
-        EOD
+             <input disabled="disabled" id="disabled_blog_guarded_bool_false" 
+                    name="disabled_blog[guarded_bool_false]" 
+                    type="checkbox" value=\"true\" />
+       EOD
 
         role.permissions << one_object_perm( :change_guarded, blog )
         user.permissions :force_reload
@@ -351,11 +353,9 @@ class AcsFormBuilderTest < ActionController::TestCase
         EOD
         cbox_txt = f.check_box( :guarded_bool_false, {}, true, false )
         assert_dom_equal( trim(<<-EOD), cbox_txt)
-           <input name="blog[guarded_bool_false]" 
-                     type="hidden" value="false"
-           /><input id="blog_guarded_bool_false" name="blog[guarded_bool_false]" 
-                  type="checkbox" value="true" 
-            />
+             <input id="blog_guarded_bool_false" 
+                    name="blog[guarded_bool_false]" 
+                    type="checkbox" value="true" />
         EOD
 
       end
