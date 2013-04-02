@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'test_helper'
 
 class SmokeTest < Test::Unit::TestCase
 

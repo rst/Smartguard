@@ -20,7 +20,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
-require File.dirname(__FILE__) + '/abstract_unit'
+require 'test_helper'
 
 class BlogEntryTest < ActiveSupport::TestCase
   fixtures :blog_entries

@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/abstract_unit'
+require 'test_helper'
 
 # Tests for declare_implied_privilege.
 # Use a new class so as not to mess up the other tests by adding implied permissions.

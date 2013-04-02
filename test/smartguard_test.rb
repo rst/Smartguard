@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'test_helper'
 
 class SmartguardTest < ActiveSupport::TestCase
   # Tests still mingled with the demoapp
