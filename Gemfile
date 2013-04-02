@@ -8,12 +8,13 @@ gemspec
 # jquery-rails is used by the dummy application
 gem "jquery-rails"
 
-# Other stuff used by the dummy
+# Other stuff used by the dummy.  Drag in both pg and Oracle DB glue code...
 
 gem 'rails', '3.2.13'
 
-gem 'ruby-oci8', '~> 2.1.0'
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.4.1'
+gem 'pg', '0.15'
+#gem 'ruby-oci8', '~> 2.1.0'
+#gem 'activerecord-oracle_enhanced-adapter', '~> 1.4.1'
 
 # Declare any dependencies that are still in development here instead of in
 # your gemspec. These might include edge Rails or gems from your path or

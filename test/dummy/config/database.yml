@@ -1,3 +1,7 @@
+postgres: &postgres
+  adapter: postgresql
+  database: smartguard_test
+
 oracle: &oracle
   adapter: oracle_enhanced
   username: rails_audit_test
@@ -5,4 +9,4 @@ oracle: &oracle
   database: railyard
 
 test:
-  <<: *<%= ENV['DB'] || "oracle" %>
+  <<: *<%= ENV['DB'] || "postgres" %>
