@@ -989,12 +989,6 @@ module Access
 
       # Add permissions checks to some innards...
 
-      private
-
-      def sanitize_sql( args )
-        self.class.send :sanitize_sql, args
-      end
-
       def read_attribute( attr_name )
         priv = self.class.read_attr_privilege( attr_name.to_sym )
         self.check_permission!( priv ) unless priv.nil?
@@ -1011,6 +1005,12 @@ module Access
         priv = self.class.read_attr_privilege( attr_name.to_sym )
         self.check_permission!( priv ) unless priv.nil?
         super
+      end
+
+      private
+
+      def sanitize_sql( args )
+        self.class.send :sanitize_sql, args
       end
 
       def write_attribute( attr_name, value )
