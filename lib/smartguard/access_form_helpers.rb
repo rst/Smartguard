@@ -37,14 +37,20 @@ module Access
 
       SIMPLE_FORM_HELPERS = 
         %w(file_field text_area password_field hidden_field text_field
-           datetime_select time_select date_select)
+           datetime_select time_select date_select
+           search_field telephone_field phone_field url_field
+           email_field number_field range_field)
 
       OTHER_FORM_HELPERS = 
         %w(check_box radio_button grouped_collection_select
            select collection_select time_zone_select)
 
+      # 'button' not wrapped at all, so here's where it goes...
+
       JUNK_METHODS = %w(fields_for error_message_on error_messages
-                        apply_form_for_options! label submit emitted_hidden_id?)
+                        apply_form_for_options! label submit emitted_hidden_id?
+                        field_helpers? parent_builder? multipart?
+                        to_model to_partial_path parent_builder button)
 
       CHECKMARK = '&#10003;'    # HTML code for a check-mark
 
