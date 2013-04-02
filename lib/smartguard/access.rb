@@ -423,9 +423,8 @@ module Access
          select user_id from role_assignments
          where (#{RoleAssignment.current_sql_condition})
            and role_assignments.role_id in
-             (select id from roles
-              start with roles.id in
-               (select p.role_id
+             (with recursive all_role_ids(id) as
+              ((select p.role_id
                 from permissions p, #{table}
                 where (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
                   and (p.class_name = :class_name)
@@ -433,7 +432,11 @@ module Access
                   and (#{table}.id  = #{associate.id})
                   and (p.target_owned_by_self = :false)
                   and #{associate.class.permission_grant_conditions})
-            connect by prior roles.id = roles.parent_role_id)
+                union all
+                (select roles.id 
+                 from roles inner join all_role_ids
+                   on roles.parent_role_id = all_role_ids.id))
+              select id from all_role_ids)
         END_SQL
 
         owner_id_attr = associate.class.owner_access_control_key
@@ -445,12 +448,15 @@ module Access
            select #{table}.#{owner_id_attr}
            from roles, permissions p, #{table}
            where roles.id in
-                 (select id from roles
-                  start with roles.id in
-                      (select role_id from role_assignments
-                       where user_id = #{table}.#{owner_id_attr}
-                       and #{RoleAssignment.current_sql_condition})
-                  connect by prior roles.parent_role_id = roles.id)
+                 (with recursive all_role_ids(id) as
+                   ((select role_id from role_assignments
+                     where user_id = #{table}.#{owner_id_attr}
+                     and #{RoleAssignment.current_sql_condition})
+                    union all
+                    (select roles.id 
+                     from roles inner join all_role_ids
+                       on roles.parent_role_id = all_role_ids.id))
+                  select id from all_role_ids)
             and (p.role_id    = roles.id)
             and (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
             and (p.class_name = :class_name)

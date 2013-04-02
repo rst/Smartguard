@@ -70,11 +70,17 @@ module SmartguardBasicUser
       # Tested only indirectly via tests on could_without_role?
 
       return <<-END_SQL
-        (select id from roles
-         start with id in (select role_id from role_assignments
-                           where user_id = #{id_stub}
-                           and #{RoleAssignment.current_sql_condition})
-               connect by prior parent_role_id = id)
+        (with recursive all_role_ids(id, parent_id) as
+          ((select roles.id, roles.parent_role_id
+            from role_assignments inner join roles
+              on roles.id = role_assignments.role_id
+            where role_assignments.user_id = #{id_stub}
+            and #{RoleAssignment.current_sql_condition})
+           union all
+           (select roles.id, roles.parent_role_id
+            from roles inner join all_role_ids
+              on roles.id = all_role_ids.parent_id))
+         select id from all_role_ids)
       END_SQL
     end
 
