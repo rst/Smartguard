@@ -1,5 +1,8 @@
+oracle: &oracle
+  adapter: oracle_enhanced
+  username: rails_audit_test
+  password: rails_audit_test
+  database: railyard
+
 test:
-  :adapter: oracle_enhanced
-  :username: rails_audit_test
-  :password: rails_audit_test
-  :database: railyard
+  <<: *<%= ENV['DB'] || "oracle" %>
