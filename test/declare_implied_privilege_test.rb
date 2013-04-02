@@ -93,7 +93,7 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
       where_permits_sql = MyBlog.where_permits(priv) 
 	sql = "select id from blogs where #{where_permits_sql}" 
 	ids = MyBlog.connection.select_values sql
-	assert_equal mertz_blog_ids, ids, "testing priv #{priv}" 
+	assert_equal mertz_blog_ids.sort, ids.sort, "testing priv #{priv}" 
       end
     end
     # ethel has only messwith
@@ -105,7 +105,7 @@ class DeclareImpliedPrivilegeTest < ActiveSupport::TestCase
       where_permits_sql = MyBlog.where_permits(:messwith) 
       sql = "select id from blogs where #{where_permits_sql}" 
       ids = MyBlog.connection.select_values sql
-      assert_equal mertz_blog_ids, ids 
+      assert_equal mertz_blog_ids.sort, ids.sort
      end
   end
 
