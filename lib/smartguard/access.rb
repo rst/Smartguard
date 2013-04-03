@@ -523,6 +523,10 @@ module Access
       #                other than :id that will be in the returned hashes,
       #   :joins --- joins to the class's table from which :columns may
       #              be taken
+      #
+      # Note that this works internally by calling connection.select_all.
+      # ID's are correctly cast, but if using pg, other columns may be
+      # left as strings.
 
       def choice_hashes_for_grant_target( grant_perm, options = {} )
 
@@ -540,13 +544,19 @@ module Access
             and p.target_owned_by_self = :false
             and #{self.permission_grant_conditions}
         END_SQL
+
         query = sanitize_sql [sql, 
                               { :grant => grant_perm,
                                 :klass => self.name,
                                 :true  => true,
                                 :false => false
                               }]
-        return connection.select_all( query )
+
+        connection.select_all( query ).tap do |recs|
+          recs.each do |rec|
+            rec["id"] = rec["id"].to_i
+          end
+        end
 
       end
 

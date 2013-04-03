@@ -813,7 +813,7 @@ class RequirePermTest < ActiveSupport::TestCase
       where_permits_cond = BlogEntry.where_permits_update_attr( :entry_txt )
       records = BlogEntry.find :all, :conditions => where_permits_cond
 
-      assert_equal records.collect(&:id).sort, ids.sort
+      assert_equal records.collect(&:id).sort, ids.collect(&:to_i).sort
 
     end
 
@@ -829,7 +829,7 @@ class RequirePermTest < ActiveSupport::TestCase
       where_permits_cond = BlogEntry.where_permits_action( :destroy )
       records = BlogEntry.find :all, :conditions => where_permits_cond
 
-      assert_equal records.collect(&:id).sort, ids.sort
+      assert_equal records.collect(&:id).sort, ids.collect(&:to_i).sort
 
     end
 

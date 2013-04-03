@@ -664,7 +664,7 @@ class PermissioningTest < ActiveSupport::TestCase
       sql = Blog.ids_permitting( :change_post )
       assert_match( / distinct /, sql )
       assert_equal [blogs(:mertz_blog).id], 
-        ActiveRecord::Base.connection.select_values( sql )
+        ActiveRecord::Base.connection.select_values( sql ).collect( &:to_i )
     end
   end
 
