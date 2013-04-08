@@ -445,25 +445,28 @@ module Access
           return non_owner_query
         else
           owner_query = sanitize_sql( [ <<-END_SQL, keys ] )
-           select #{table}.#{owner_id_attr}
-           from roles, permissions p, #{table}
-           where roles.id in
-                 (with recursive all_role_ids(id) as
-                   ((select role_id from role_assignments
-                     where user_id = #{table}.#{owner_id_attr}
-                     and #{RoleAssignment.current_sql_condition})
-                    union all
-                    (select roles.id 
-                     from roles inner join all_role_ids
-                       on roles.parent_role_id = all_role_ids.id))
-                  select id from all_role_ids)
-            and (p.role_id    = roles.id)
-            and (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
-            and (p.class_name = :class_name)
-            and (p.is_grant   = :false)
-            and (#{table}.id  = #{associate.id})
-            and (p.target_owned_by_self = :true)
-            and #{associate.class.permission_grant_conditions}
+           (with recursive
+             granting_assigns_nonrecursive(role_id, user_id) as 
+               (select p.role_id, #{table}.#{owner_id_attr} as user_id
+                from permissions p, #{table}
+                where #{table}.id = #{associate.id}
+                  and (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
+                  and (p.class_name = :class_name)
+                  and (p.is_grant   = :false)
+                  and (#{table}.id  = #{associate.id})
+                  and (p.target_owned_by_self = :true)
+                  and #{associate.class.permission_grant_conditions}),
+             granting_assigns(role_id, user_id) as
+               ((select role_id, user_id from granting_assigns_nonrecursive)
+                union all
+                (select roles.id as role_id, granting_assigns.user_id
+                 from roles inner join granting_assigns
+                   on roles.parent_role_id = granting_assigns.role_id))
+             select granting_assigns.user_id
+             from granting_assigns inner join role_assignments
+               on granting_assigns.user_id = role_assignments.user_id
+                  and granting_assigns.role_id = role_assignments.role_id
+             where #{RoleAssignment.current_sql_condition})
           END_SQL
 
           return "(#{non_owner_query} UNION #{owner_query})"
