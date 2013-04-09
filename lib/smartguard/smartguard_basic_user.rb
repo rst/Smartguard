@@ -70,7 +70,7 @@ module SmartguardBasicUser
       # Tested only indirectly via tests on could_without_role?
 
       return <<-END_SQL
-        (with recursive all_role_ids(id, parent_id) as
+        (with all_role_ids(id, parent_id) as
           ((select roles.id, roles.parent_role_id
             from role_assignments inner join roles
               on roles.id = role_assignments.role_id
