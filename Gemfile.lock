@@ -28,6 +28,7 @@ GEM
       activesupport (= 3.2.13)
       arel (~> 3.0.2)
       tzinfo (~> 0.3.29)
+    activerecord-oracle_enhanced-adapter (1.4.2)
     activeresource (3.2.13)
       activemodel (= 3.2.13)
       activesupport (= 3.2.13)
@@ -92,6 +93,7 @@ GEM
     rake (10.0.4)
     rdoc (3.12.2)
       json (~> 1.4)
+    ruby-oci8 (2.1.5)
     slop (3.4.4)
     sprockets (2.2.2)
       hike (~> 1.2)
@@ -110,10 +112,12 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  activerecord-oracle_enhanced-adapter (~> 1.4.1)
   debugger
   jquery-rails
   pg (= 0.15)
   pry-rails
   rails (= 3.2.13)
+  ruby-oci8 (~> 2.1.0)
   smartguard!
   sqlite3

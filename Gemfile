@@ -13,8 +13,8 @@ gem "jquery-rails"
 gem 'rails', '3.2.13'
 
 gem 'pg', '0.15'
-#gem 'ruby-oci8', '~> 2.1.0'
-#gem 'activerecord-oracle_enhanced-adapter', '~> 1.4.1'
+gem 'ruby-oci8', '~> 2.1.0'
+gem 'activerecord-oracle_enhanced-adapter', '~> 1.4.1'
 
 # Declare any dependencies that are still in development here instead of in
 # your gemspec. These might include edge Rails or gems from your path or
