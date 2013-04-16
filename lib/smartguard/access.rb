@@ -444,8 +444,8 @@ module Access
         if owner_id_attr.nil?
           return non_owner_query
         else
-          owner_query = sanitize_sql( [ <<-END_SQL, keys ] )
-           (with 
+          return sanitize_sql( [ <<-END_SQL, keys ] )
+           with 
              granting_assigns_nonrecursive(role_id, user_id) as 
                (select p.role_id, #{table}.#{owner_id_attr} as user_id
                 from permissions p, #{table}
@@ -462,14 +462,14 @@ module Access
                 (select roles.id as role_id, granting_assigns.user_id
                  from roles inner join granting_assigns
                    on roles.parent_role_id = granting_assigns.role_id))
-             select granting_assigns.user_id
-             from granting_assigns inner join role_assignments
-               on granting_assigns.user_id = role_assignments.user_id
-                  and granting_assigns.role_id = role_assignments.role_id
-             where #{RoleAssignment.current_sql_condition})
+             (select granting_assigns.user_id
+              from granting_assigns inner join role_assignments
+                on granting_assigns.user_id = role_assignments.user_id
+                   and granting_assigns.role_id = role_assignments.role_id
+              where #{RoleAssignment.current_sql_condition})
+             union
+             (#{non_owner_query})
           END_SQL
-
-          return "(#{non_owner_query} UNION #{owner_query})"
         end
 
       end
