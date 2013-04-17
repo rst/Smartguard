@@ -13,8 +13,16 @@ gem "jquery-rails"
 gem 'rails', '3.2.13'
 
 gem 'pg', '0.15'
-gem 'ruby-oci8', '~> 2.1.0'
-gem 'activerecord-oracle_enhanced-adapter', '~> 1.4.1'
+
+if ENV['ORACLE_HOME']
+  gem 'ruby-oci8', '~> 2.1.0'
+  gem 'activerecord-oracle_enhanced-adapter', '~> 1.4.1'
+else
+  # No ORACLE_HOME; presumably no Oracle header files present either,
+  # and we'd need those to build the adapter's binary extensions.
+
+  puts "ORACLE_HOME not set; skipping Oracle gems"
+end
 
 # Declare any dependencies that are still in development here instead of in
 # your gemspec. These might include edge Rails or gems from your path or
