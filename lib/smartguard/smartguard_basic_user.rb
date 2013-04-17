@@ -69,8 +69,10 @@ module SmartguardBasicUser
       # knows what it does, and does something similar in-core.
       # Tested only indirectly via tests on could_without_role?
 
+      recursive = Smartguard::DbSpecific.recursive
+
       return <<-END_SQL
-        (with all_role_ids(id) as
+        (with #{recursive} all_role_ids(id) as
             #{self.role_assigned_subquery(id_stub, 'all_role_ids')}
          select id from all_role_ids)
       END_SQL

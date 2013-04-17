@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2007 Robert S. Thau, Smartleaf, Inc.
+# Copyright (c) 2013 Robert S. Thau, Smartleaf, Inc.
 # 
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -19,34 +19,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
-module SmartguardBasicRoleAssignment
 
-  module ClassMethods
+module Smartguard
+  module DbSpecific
+    
+    def self.is_oracle
+      ActiveRecord::Base.connection.class.name =~ /Oracle/
+    end
 
-    def current_sql_condition
-      @current_sql_condition ||=
-       "(role_assignments.invalid_after is null
-         or role_assignments.invalid_after > #{Smartguard::DbSpecific.now_sql})"
+    def self.now_sql
+      @now_sql ||= (is_oracle)? 'sysdate' : 'now()'
+    end
+
+    def self.recursive
+      @recursive ||= (is_oracle)? '' : 'recursive'
     end
 
   end
-
-  def current?
-    invalid_after.nil? || invalid_after.to_time > Time.now
-  end
-
-  def self.included( klass )
-
-    klass.belongs_to :user
-    klass.belongs_to :role
-
-    klass.validates_presence_of :user
-    klass.validates_presence_of :role
-
-    klass.never_permit_anyone :to_update_attribute => [:user_id, :role_id]
-
-    klass.extend ClassMethods
-
-  end
-
 end

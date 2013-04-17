@@ -421,11 +421,13 @@ module Access
           :class_name => associate.class.sg_base_class_name
         }
 
+        recursive = Smartguard::DbSpecific.recursive
+
         non_owner_query = sanitize_sql( [ <<-END_SQL, keys ] )
          select user_id from role_assignments
          where (#{RoleAssignment.current_sql_condition})
            and role_assignments.role_id in
-             (with all_role_ids(id) as
+             (with #{recursive} all_role_ids(id) as
               ((select p.role_id
                 from permissions p, #{table}
                 where (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
@@ -447,7 +449,7 @@ module Access
           return non_owner_query
         else
           return sanitize_sql( [ <<-END_SQL, keys ] )
-           with 
+           with #{recursive}
              granting_assigns_nonrecursive(role_id, user_id) as 
                (select p.role_id, #{table}.#{owner_id_attr} as user_id
                 from permissions p, #{table}
