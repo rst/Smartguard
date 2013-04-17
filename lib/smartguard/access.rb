@@ -341,8 +341,10 @@ module Access
         # to avoid DB dependencies on the syntax for "false"
 
         user = keyword_args[:user] || User.current
+        role_ids_clause = 
+          keyword_args[:role_ids_subquery] || User.role_assigned_cond(':user')
 
-        if user.nil?
+        if user.nil? && keyword_args[:role_ids_subquery].nil?
           raise ArgumentError.new("Cannot generate where clause without user")
         end
 
@@ -367,7 +369,7 @@ module Access
             (select #{maybe_distinct} #{table_name}.id from #{table_name},
                (select permissions.*
                 from permissions
-                where role_id in #{User.role_assigned_cond( ':user' )}) p
+                where role_id in #{role_ids_clause}) p
              where (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
                and (p.class_name = :class_name)
                and (p.is_grant   = :false)

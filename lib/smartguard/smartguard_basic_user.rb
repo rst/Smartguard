@@ -70,17 +70,22 @@ module SmartguardBasicUser
       # Tested only indirectly via tests on could_without_role?
 
       return <<-END_SQL
-        (with all_role_ids(id, parent_id) as
-          ((select roles.id, roles.parent_role_id
-            from role_assignments inner join roles
-              on roles.id = role_assignments.role_id
-            where role_assignments.user_id = #{id_stub}
-            and #{RoleAssignment.current_sql_condition})
-           union all
-           (select roles.id, roles.parent_role_id
-            from roles inner join all_role_ids
-              on roles.id = all_role_ids.parent_id))
+        (with all_role_ids(id) as
+            #{self.role_assigned_subquery(id_stub, 'all_role_ids')}
          select id from all_role_ids)
+      END_SQL
+    end
+
+    def role_assigned_subquery( id_stub, subquery_name ) #:nodoc:
+      return <<-END_SQL
+          ((select role_assignments.role_id
+            from role_assignments 
+            where role_assignments.user_id = #{id_stub}
+              and #{RoleAssignment.current_sql_condition})
+           union all
+           (select roles.parent_role_id
+            from #{subquery_name}
+                 inner join roles on roles.id = #{subquery_name}.id))
       END_SQL
     end
 
