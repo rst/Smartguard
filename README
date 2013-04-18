@@ -1,13 +1,15 @@
 Smartguard
 ==========
 
-Introduction goes here.
+    Smartguard provides a flexible framework for declaring who can do
+    what to ActiveRecord model objects.  It stores the permission
+    structure in the database, allowing it to be manipulated at
+    runtime, including creating new roles, assigning them to users,
+    and changing the permissions associated with a role.  (Permissions
+    grant a particular privilege on some or all objects of a given
+    class, as determined by particular attributes designated as access
+    control keys.)  It also allows programmers to easily declare what
+    privileges are required to, say, save a model object, delete it,
+    or set particularly sensitive attributes.
 
-
-Example
-=======
-
-Example goes here.
-
-
-Copyright (c) 2008 [name of plugin creator], released under the MIT license
+Copyright (c) 2013 Smartleaf, released under the MIT license
