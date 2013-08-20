@@ -12,6 +12,9 @@ Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }
 # Load fixtures from the engine
 ActiveSupport::TestCase.fixture_path = File.expand_path("../fixtures", __FILE__)
 
+# Add some stock test helpers of our own.
+require 'access_db_helpers'
+
 class ActiveSupport::TestCase
 
   def assert_valid( x )
