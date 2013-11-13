@@ -10,7 +10,7 @@ gem "jquery-rails"
 
 # Other stuff used by the dummy
 
-gem 'rails', '4.0.0'
+gem 'rails', '4.0.1'
 
 gem 'ruby-oci8', '~> 2.1.0'
 gem 'activerecord-oracle_enhanced-adapter', 
