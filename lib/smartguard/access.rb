@@ -540,7 +540,7 @@ module Access
                                 :true  => true,
                                 :false => false
                               }]
-        return connection.select_all( query )
+        return connection.select_all( query ).to_a
 
       end
 
