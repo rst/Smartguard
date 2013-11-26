@@ -83,7 +83,7 @@ class PermittedAssocsTest < ActiveSupport::TestCase
   end
 
   def test_no_restrictions
-    assert_same_ids Firm.find( :all ), 
+    assert_same_ids Firm.all, 
       blogs(:ricky_dubuque_blog).permitted_associates( :owner_firm )
   end
 
@@ -98,7 +98,7 @@ class PermittedAssocsTest < ActiveSupport::TestCase
     end
 
     with_permission( [assoc_perm, dissoc_perm] ) do
-      assert_same_ids PhonyPatBlog.find_all_by_owner_firm_id( firms(:dubuque)),
+      assert_same_ids PhonyPatBlog.where(owner_firm_id: firms(:dubuque)),
         @ricky_entry.permitted_associates( :blog )
     end
 

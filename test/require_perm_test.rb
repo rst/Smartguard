@@ -715,7 +715,7 @@ class RequirePermTest < ActiveSupport::TestCase
 
   def test_wildcards_dont_allow_forbidden_operations
 
-    my_np = PhonyNeverPermits.find :first
+    my_np = PhonyNeverPermits.first
 
     with_permission( wildcard_perm( :any, PhonyNeverPermits )) do
       assert_equal [], PhonyNeverPermits.all_permitting( :forbidden_operation )
@@ -803,15 +803,14 @@ class RequirePermTest < ActiveSupport::TestCase
 
     check_permits_both_ways( owner, other_user ) do | should_it, who |
       assert_access_query_correct(should_it, my_entry, "#{who} upd txt") do
-        BlogEntry.find :all, 
-          :conditions => BlogEntry.where_permits_update_attr( :entry_txt )
+        BlogEntry.where( BlogEntry.where_permits_update_attr( :entry_txt ))
       end
 
       ids_permitting_qry = BlogEntry.ids_permitting_update_attr( :entry_txt )
       ids = ActiveRecord::Base.connection.select_values( ids_permitting_qry )
 
       where_permits_cond = BlogEntry.where_permits_update_attr( :entry_txt )
-      records = BlogEntry.find :all, :conditions => where_permits_cond
+      records = BlogEntry.where( where_permits_cond ).to_a
 
       assert_equal records.collect(&:id).sort, ids.sort
 
@@ -819,15 +818,14 @@ class RequirePermTest < ActiveSupport::TestCase
 
     check_permits_both_ways( owner, other_user ) do | should_it, who |
       assert_access_query_correct(should_it, my_entry, "#{who} destroy") do
-        BlogEntry.find :all, 
-          :conditions => BlogEntry.where_permits_action( :destroy )
+        BlogEntry.where( BlogEntry.where_permits_action( :destroy ))
       end
 
       ids_permitting_qry = BlogEntry.ids_permitting_action( :destroy )
       ids = ActiveRecord::Base.connection.select_values( ids_permitting_qry )
 
       where_permits_cond = BlogEntry.where_permits_action( :destroy )
-      records = BlogEntry.find :all, :conditions => where_permits_cond
+      records = BlogEntry.where( where_permits_cond ).to_a
 
       assert_equal records.collect(&:id).sort, ids.sort
 

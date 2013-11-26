@@ -151,7 +151,7 @@ module SmartguardBasicUser
 
     cond_str = 'role_id in ' + self.class.role_assigned_cond( '?' )
     if !@permissions
-      @permissions ||= Permission.find :all, :conditions => [cond_str, self]
+      @permissions ||= Permission.where([cond_str, self]).to_a
     end
 
     return @permissions

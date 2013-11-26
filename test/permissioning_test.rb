@@ -124,8 +124,7 @@ class PermissioningTest < ActiveSupport::TestCase
   end
 
   def with_dated_role_assignment( user, role, expiry_dates )
-    assignment = user.role_assignments.find :first,
-                   :conditions => ['role_id = ?', role]
+    assignment = user.role_assignments.where(['role_id = ?', role]).first
     assert_not_nil assignment   # If this fails, bug in the test code.
     old_expiry_date = assignment.invalid_after
     begin
@@ -254,8 +253,7 @@ class PermissioningTest < ActiveSupport::TestCase
       # But, if we deassign the parent role directly (so that its
       # permissions are only granted by inheritance from the child role)...
 
-      ras = user.role_assignments.find( :all, 
-                                        :conditions=>{:role_id => parent_role})
+      ras = user.role_assignments.where(role_id: parent_role)
       ras.each do |ra| ra.destroy end
 
       user = User.find( user.id )
@@ -511,7 +509,7 @@ class PermissioningTest < ActiveSupport::TestCase
 
     with_access_granting_tweaks( perm ) do |msg|
 
-      if user.role_assignments.find( :all, :conditions => { :role_id => role }).empty?
+      if user.role_assignments.where(role_id: role).empty?
         # Indirectly assigned as subrole
         check_access_grant( recs, user, klass, op, msg )
       else
@@ -574,8 +572,7 @@ class PermissioningTest < ActiveSupport::TestCase
 
     with_access_granting_tweaks( perm ) do 
 
-      if !user.role_assignments.find( :first, 
-                                      :conditions => { :role_id => role })
+      if !user.role_assignments.where( role_id: role ).first
 
         check_users_permitted_by_grant(klass, priv, user,
                                        all_recs, permitted_recs)
@@ -703,7 +700,7 @@ class PermissioningTest < ActiveSupport::TestCase
     rec_ids = recs.collect &:id
     user.permissions :force_reload
 
-    (klass.find :all).each do |rec|
+    klass.all.each do |rec|
       if rec_ids.include?( rec.id )
         assert rec.permits?( op ), msg
       else
@@ -730,7 +727,7 @@ class PermissioningTest < ActiveSupport::TestCase
     rec_ids = (recs.collect &:id).sort.uniq
     assert_equal rec_ids.sort, granted_ids.sort
 
-    (klass.find :all).each do |rec|
+    klass.all.each do |rec|
       if granted_ids.include?( rec.id )
         assert  perms.any? {|perm| perm.allows?( rec, op, user )}
         assert  user.can?( op, rec )
@@ -754,11 +751,11 @@ class PermissioningTest < ActiveSupport::TestCase
          :has_grant_option => false
 
       assert_choices_for_grant_yields gperm, 
-        Blog.find_all_by_owner_firm_id( firms(:mertz) )
+        Blog.where( owner_firm_id: firms(:mertz) )
 
       gperm.update_attributes! :target_owner_firm => firms(:dubuque)
       assert_choices_for_grant_yields gperm, 
-        Blog.find_all_by_owner_firm_id( firms(:dubuque) )
+        Blog.where( owner_firm_id: firms(:dubuque) )
 
       gperm.update_attributes! :target_owned_by_self => true
       assert_equal [], Blog.choices_for_grant_target( gperm )
@@ -773,7 +770,7 @@ class PermissioningTest < ActiveSupport::TestCase
 
       gperm.update_attributes! :class_name => 'Blog'
       assert_choices_for_grant_yields gperm, 
-        Blog.find_all_by_owner_firm_id( firms(:dubuque) )
+        Blog.where(owner_firm_id: firms(:dubuque) )
 
     end
   end
@@ -796,7 +793,7 @@ class PermissioningTest < ActiveSupport::TestCase
          :privilege => :post, :target_owned_by_self => false,
          :has_grant_option => false
 
-      mblog_hashes = Blog.find_all_by_owner_firm_id( firms(:mertz) ).
+      mblog_hashes = Blog.where(owner_firm_id: firms(:mertz)).
         collect{ |blog|
         { 'name' => blog.name, 'firm_name' => blog.owner_firm.name, 
           'id' => blog.id } }

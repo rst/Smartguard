@@ -391,8 +391,7 @@ module Access
       # Returns all users with privilege 'priv' on 'obj'
 
       def users_permitted_to( priv, obj )
-        User.find :all,
-          :conditions => "id in (#{users_permitted_sql( priv, obj )})"
+        User.where("id in (#{users_permitted_sql( priv, obj )})").to_a
       end
 
       # Returns SQL for a select which returns the IDs of all users
@@ -589,7 +588,7 @@ module Access
 
     def users_permitted_to( priv )
       sql = self.class.users_permitted_sql( priv, self )
-      User.find :all, :conditions => "id in (#{sql})"
+      User.where("id in (#{sql})")
     end
 
     # Returns SQL for a select which returns the IDs of all users
