@@ -240,24 +240,20 @@ module Access
       #                             Klass.where_permits( :edit )
 
       def all_permitting( priv, keyword_args = {} )
-        find :all, add_priv_check_to_query_args( priv, keyword_args )
+        perm_conds = where_permits( priv, :user => keyword_args.delete(:user) ) 
+        self.applying_deprecated_query_args( keyword_args ).where( perm_conds )
       end
 
-      def add_priv_check_to_query_args( privilege, keyword_args  ) # :nodoc:
+      # Apply some of the deprecated query args --- the ones that we are
+      # actually known to use.
 
-        keyword_args = keyword_args.clone
-        user = keyword_args.delete( :user )
-        perm_conds = where_permits( privilege, :user => user ) 
-
-        if keyword_args[:conditions].nil?
-          keyword_args[:conditions] = perm_conds
-        else
-          old_conds = sanitize_sql( keyword_args[:conditions] )
-          keyword_args[:conditions] = perm_conds + ' and ' + old_conds
-        end
-
-        keyword_args
-
+      def applying_deprecated_query_args( args ) # :nodoc:
+        rel = self.all
+        rel = rel.includes(args[:include]) if args[:include]
+        rel = rel.where(args[:conditions]) if args[:conditions]
+        rel = rel.order(args[:order])      if args[:order]
+        rel = rel.limit(args[:limit])      if args[:limit]
+        rel
       end
 
       # :call-seq:
@@ -280,7 +276,7 @@ module Access
       #                              Klass.where_permits( :edit )
 
       def count_permitting( priv, keyword_args = {} )
-        count add_priv_check_to_query_args( priv, keyword_args )
+        all_permitting( priv, keyword_args ).count
       end
 
       # :call-seq:

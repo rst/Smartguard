@@ -957,8 +957,8 @@ module Access
 
         real_conds = sql_conds.join( ' and ' )
 
-        return klass.find( :all, opts.merge!( :conditions => real_conds ) )
-        
+        return klass.applying_deprecated_query_args( opts ).where( real_conds )
+
       end
 
       # Support reflection

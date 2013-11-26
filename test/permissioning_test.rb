@@ -889,10 +889,12 @@ class PermissioningTest < ActiveSupport::TestCase
 
       [nil, 'ric%', 'ricky%'].each do |pat|
 
-        kw_args = {}
-        kw_args[:conditions] = ["name like ?", pat] unless pat.nil?
+        cond = if pat.nil? then nil else ["name like ?", pat] end
 
-        blogs_by_cond = Blog.find_all_by_owner_firm_id(firms(:dubuque),kw_args)
+        by_cond_rel = if cond.nil? then Blog.all else Blog.where(cond) end
+        blogs_by_cond = by_cond_rel.where(owner_firm_id: firms(:dubuque))
+
+        kw_args = if cond.nil? then {} else {conditions: cond} end
         blogs_by_perm = Blog.all_permitting( :post, kw_args )
 
         assert_equal blogs_by_cond.sort_by(&:id), blogs_by_perm.sort_by(&:id)
