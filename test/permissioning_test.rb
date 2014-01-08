@@ -163,11 +163,11 @@ class PermissioningTest < ActiveSupport::TestCase
     User.as( users( :universal_grant_guy)) do
       user.role_assignments.create! :role => roles(:mertz_admin)
       assert_equal mertz_permissions, user_current_permissions.call
-      assert_equal 1,                 user.roles.count
+      assert_equal 1,                 user.roles(:reload).count
 
       user.role_assignments.create! :role => roles(:ricardo_admin)
       assert_equal mixed_permissions, user_current_permissions.call
-      assert_equal 2,                 user.roles.count
+      assert_equal 2,                 user.roles(:reload).count
     end
 
     # Expiration date in the future shouldn't affect anything.
