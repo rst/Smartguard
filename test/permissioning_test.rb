@@ -182,7 +182,7 @@ class PermissioningTest < ActiveSupport::TestCase
     # current roles.
 
     with_expired_role_assignment( user, roles(:mertz_admin) ) do
-      assert_equal 1,                   user.roles.count
+      assert_equal 1,                   user.roles(:reload).count
       assert_equal 2,                   user.role_assignments.count
       assert_equal ricardo_permissions, user_current_permissions.call
     end
