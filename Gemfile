@@ -10,12 +10,12 @@ gem "jquery-rails"
 
 # Other stuff used by the dummy
 
-gem 'rails', '4.1.0.beta1'
+gem 'rails', '4.2.0'
 
-gem 'ruby-oci8', '~> 2.1.0'
+gem 'ruby-oci8', '~> 2.1.7'
 gem 'activerecord-oracle_enhanced-adapter', 
-    git: '/home/rst/src/oracle-enhanced',
-    branch: 'slmod_rails4'
+    git: '/home/rst/src/oracle-enhanced.new',
+    branch: 'rails42_slmod'
 
 # Declare any dependencies that are still in development here instead of in
 # your gemspec. These might include edge Rails or gems from your path or
@@ -23,7 +23,7 @@ gem 'activerecord-oracle_enhanced-adapter',
 # your gem to rubygems.org.
 
 # To use debugger, and other tools...
-gem 'debugger'
+# gem 'debugger'
 gem 'pry-rails'
 
 # Kludge.  Should not be required, but need this for the two-arg
