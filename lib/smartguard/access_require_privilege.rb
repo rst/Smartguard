@@ -629,7 +629,7 @@ module Access
       def class_for_associate( assoc_name ) # :nodoc:
         @classes_for_associates ||= {}
         @classes_for_associates[assoc_name] ||= 
-          reflections[assoc_name].class_name.constantize
+          self.reflect_on_association(assoc_name).class_name.constantize
       end
 
       def base_class_for_associate( assoc_name ) # :nodoc:
