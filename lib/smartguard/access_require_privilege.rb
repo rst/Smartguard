@@ -1013,12 +1013,32 @@ module Access
         self.class.send :sanitize_sql, args
       end
 
+      def smartguard_set_attrs_for_copy!( attrs )
+
+        unless new_record?
+          raise ArgumentError, 
+                "Can't call set_attrs_for_copy on existing record"
+        end
+
+        begin
+          @smartguard_attr_write_checks_suppressed = true
+          attrs.each do |k,v|
+            self.send("#{k}=",v)
+          end
+        ensure
+          @smartguard_attr_write_checks_suppressed = false
+        end
+
+      end
+
       def write_attribute( attr_name, value )
         check_attr_write_permission!( attr_name, value )
         super
       end
 
       def check_attr_write_permission!( attr_name, new_value )
+
+        return if @smartguard_attr_write_checks_suppressed
 
         old_value = read_attribute( attr_name )
 

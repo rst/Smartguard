@@ -59,6 +59,10 @@ class PhonyBlog < ActiveRecord::Base
     yield arg + ', but I am a cow!'
   end
 
+  def unguarded_set_attrs_for_copy!(attrs)
+    smartguard_set_attrs_for_copy!(attrs)
+  end
+
 end
 
 class PhonyNoPerms < ActiveRecord::Base
@@ -320,6 +324,35 @@ class RequirePermTest < ActiveSupport::TestCase
       
     end
 
+  end
+
+  # Tests for the bypass for copy functionality
+
+  def test_set_attrs_for_copy_unsaved
+    with_test_role_for_unprivileged_guy(:no_grants) do |user, role|
+      attr_test_phony = PhonyBlog.new
+      attr_test_phony.unguarded_set_attrs_for_copy!( :attr_set_guarded_grub =>
+                                                     'bozo' )
+      assert_equal 'bozo', attr_test_phony.attr_set_guarded_grub
+      assert_raises( PermissionFailure ) do
+        attr_test_phony.attr_set_guarded_grub = 'clown'
+      end
+    end
+  end
+
+  def test_set_attrs_for_copy_saved
+    attr_test_phony = nil
+
+    assert_requires( owner_perm(:change_name, PhonyBlog, users(:lucy))) do
+      attr_test_phony = PhonyBlog.create! :owner => users(:lucy), 
+                                          :owner_firm => firms(:ricardo),
+                                          :name => "phony"
+    end
+
+    assert_raises( ArgumentError ) do
+      attr_test_phony.unguarded_set_attrs_for_copy!( :attr_set_guarded_grub =>
+                                                     'bozo' )
+    end
   end
 
   # Test for permits_create?  Note that we must tweak the classes
