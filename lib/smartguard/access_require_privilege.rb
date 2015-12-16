@@ -468,9 +468,13 @@ module Access
       # belongs_to wrapper which arranges for permissions to be
       # checked at appropriate points.
 
-      def belongs_to( assoc_name, options = {} ) #:nodoc:
+      def belongs_to( assoc_name, scope = nil, options = nil ) #:nodoc:
 
-        super( assoc_name, options )
+        if options.nil?
+          super( assoc_name, scope )
+        else
+          super( assoc_name, scope, options)
+        end
 
         raise "huh?" unless self.method_defined?( assoc_name )
 
