@@ -1048,7 +1048,20 @@ module Access
 
         return if old_value.to_s == new_value.to_s
 
-        priv = set_attr_privilege( attr_name.to_sym )
+        # Re: oddness that follows -- 'set_attr_privilege' calls
+        # 'new_record?', which can in turn call 'write_attribute'
+        # to unwind transaction state, leading to infinite loops.
+        # Since we assume that the prior state was safe, anyway,
+        # we just let activerecord unwind (if it's going to do
+        # that) without interfering.
+
+        priv = begin
+                 @smartguard_attr_write_checks_suppressed = true
+                 set_attr_privilege( attr_name.to_sym )
+               ensure
+                 @smartguard_attr_write_checks_suppressed = false
+               end
+
         self.check_permission!( priv ) unless priv.nil?
 
         assoc_name = self.class.reflected_privilege( :fk_for_associate, 
