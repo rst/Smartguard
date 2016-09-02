@@ -25,8 +25,3 @@ gem 'activerecord-oracle_enhanced-adapter',
 # To use debugger, and other tools...
 # gem 'debugger'
 gem 'pry-rails'
-
-# Kludge.  Should not be required, but need this for the two-arg
-# 'attributes=' that was deleted along with the rest of protected-attrs...
-
-gem 'protected_attributes'

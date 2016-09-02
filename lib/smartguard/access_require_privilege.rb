@@ -739,7 +739,7 @@ module Access
       # attributes= wrapper which honors attribute_block_set_groups
       # (from the class level)
 
-      def assign_attributes( new_attributes, options = {} )  # :nodoc:
+      def assign_attributes( new_attributes )  # :nodoc:
 
         return if new_attributes.nil?
         new_attrs = new_attributes.dup
@@ -753,12 +753,16 @@ module Access
             end
           end
           if blok_attrs.size > 0
-            super blok_attrs, options
+            super blok_attrs
           end
         end
 
-        super new_attrs, options
+        super new_attrs
         
+      end
+
+      def attributes=( new_attributes )
+        assign_attributes( new_attributes )
       end
 
       # Returns the normal permissions with any items which are 
