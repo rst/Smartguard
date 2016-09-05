@@ -742,7 +742,7 @@ module Access
       def assign_attributes( new_attributes )  # :nodoc:
 
         return if new_attributes.nil?
-        new_attrs = new_attributes.dup
+        new_attrs = sanitize_for_mass_assignment(new_attributes).dup
         new_attrs.stringify_keys!
 
         self.class.attribute_block_set_groups.each do |blok|
