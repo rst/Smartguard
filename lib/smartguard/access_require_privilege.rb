@@ -432,9 +432,15 @@ module Access
               define_method( callback ){}
             end
           end
-          self.send( callback, lambda do |rec| 
-                       rec.check_permission!( priv_key )
-                     end)
+          if callback == :before_update
+            self.send( callback, lambda do |rec| 
+                         rec.check_permission!( priv_key ) if rec.changed?
+                       end)
+          else
+            self.send( callback, lambda do |rec| 
+                         rec.check_permission!( priv_key )
+                       end)
+          end
         end
 
       end
