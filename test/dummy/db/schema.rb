@@ -3,8 +3,8 @@ ActiveRecord::Schema.define(:version => 1) do
   create_table "blog_entries", :force => true do |t|
     t.integer  "blog_id",       :null => false
     t.text     "entry_txt",     :null => false
-    t.datetime "created_at",    :null => false
-    t.datetime "updated_at",    :null => false
+    t.timestamp "created_at",    :null => false
+    t.timestamp "updated_at",    :null => false
     t.integer  "owner_id",      :null => false
     t.integer  "owner_firm_id", :null => false
   end
@@ -14,8 +14,8 @@ ActiveRecord::Schema.define(:version => 1) do
 
   create_table "blogs", :force => true do |t|
     t.string   "name",          :limit => 100, :null => false
-    t.datetime "created_at",                   :null => false
-    t.datetime "updated_at",                   :null => false
+    t.timestamp "created_at",                   :null => false
+    t.timestamp "updated_at",                   :null => false
     t.integer  "owner_id",                     :null => false
     t.integer  "owner_firm_id",                :null => false
   end
@@ -27,8 +27,8 @@ ActiveRecord::Schema.define(:version => 1) do
   create_table "entry_comments", :force => true do |t|
     t.integer  "blog_entry_id"
     t.text     "comment_txt",   :null => false
-    t.datetime "created_at",    :null => false
-    t.datetime "updated_at",    :null => false
+    t.timestamp "created_at",    :null => false
+    t.timestamp "updated_at",    :null => false
     t.integer  "owner_id",      :null => false
     t.integer  "owner_firm_id", :null => false
   end
@@ -38,8 +38,8 @@ ActiveRecord::Schema.define(:version => 1) do
 
   create_table "firms", :force => true do |t|
     t.string   "name",                   :limit => 100, :null => false
-    t.datetime "created_at",                            :null => false
-    t.datetime "updated_at",                            :null => false
+    t.timestamp "created_at",                            :null => false
+    t.timestamp "updated_at",                            :null => false
   end
 
   create_table "pcheck_log_entries", :force => true do |t|
@@ -50,8 +50,8 @@ ActiveRecord::Schema.define(:version => 1) do
     t.string   "privilege",            :limit => 40,  :null => false
     t.integer  "user_id",                             :null => false
     t.string   "user_name",            :limit => 100, :null => false
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.timestamp "created_at"
+    t.timestamp "updated_at"
   end
 
   create_table "permissions", :force => true do |t|
@@ -65,15 +65,15 @@ ActiveRecord::Schema.define(:version => 1) do
     t.integer  "target_owner_firm_id"
     t.integer  "target_id"
     t.string   "target_name",          :limit => 100
-    t.datetime "created_at",                          :null => false
-    t.datetime "updated_at",                          :null => false
+    t.timestamp "created_at",                          :null => false
+    t.timestamp "updated_at",                          :null => false
   end
 
   add_index "permissions", ["role_id"], :name => "index_permissions_on_role_id"
 
   create_table "request_log_entries", :force => true do |t|
-    t.datetime "created_at"
-    t.datetime "updated_at"
+    t.timestamp "created_at"
+    t.timestamp "updated_at"
     t.integer  "acting_user_id"
     t.integer  "user_of_record_id"
     t.string   "acting_user_name"
@@ -92,15 +92,15 @@ ActiveRecord::Schema.define(:version => 1) do
     t.integer  "role_id",         :null => false
     t.integer  "default_user_id"
     t.integer  "default_firm_id"
-    t.datetime "invalid_after"
-    t.datetime "created_at",      :null => false
-    t.datetime "updated_at",      :null => false
+    t.timestamp "invalid_after"
+    t.timestamp "created_at",      :null => false
+    t.timestamp "updated_at",      :null => false
   end
 
   create_table "roles", :force => true do |t|
     t.string   "name",          :limit => 100, :null => false
-    t.datetime "created_at",                   :null => false
-    t.datetime "updated_at",                   :null => false
+    t.timestamp "created_at",                   :null => false
+    t.timestamp "updated_at",                   :null => false
     t.integer  "owner_id",                     :null => false
     t.integer  "owner_firm_id",                :null => false
     t.integer  "parent_role_id"
@@ -112,8 +112,8 @@ ActiveRecord::Schema.define(:version => 1) do
   create_table "users", :force => true do |t|
     t.string   "name",                     :limit => 100, :null => false
     t.integer  "owner_firm_id",                           :null => false
-    t.datetime "created_at",                              :null => false
-    t.datetime "updated_at",                              :null => false
+    t.timestamp "created_at",                              :null => false
+    t.timestamp "updated_at",                              :null => false
   end
 
   create_table "reports", :force => true do |t|
@@ -122,8 +122,8 @@ ActiveRecord::Schema.define(:version => 1) do
     t.integer  "owner_id",                     :null => false
     t.integer  "owner_firm_id",                :null => false
     t.integer  "guarded_int"
-    t.datetime "created_at",                   :null => false
-    t.datetime "updated_at",                   :null => false
+    t.timestamp "created_at",                   :null => false
+    t.timestamp "updated_at",                   :null => false
   end
 
   create_table "line_items", :force => true do |t|
