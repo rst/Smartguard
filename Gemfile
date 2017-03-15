@@ -10,12 +10,12 @@ gem "jquery-rails"
 
 # Other stuff used by the dummy
 
-gem 'rails', '~> 4.2.5'
+gem 'rails', '~> 5.1.0.beta1'
 
-gem 'ruby-oci8', '~> 2.1.7'
+gem 'ruby-oci8', '~> 2.2.0'
 gem 'activerecord-oracle_enhanced-adapter', 
     git: '/home/rst/src/oracle-enhanced.new',
-    branch: 'v1.6.5_slmod'
+    branch: 'v1.8.0.beta1_slhack'
 
 # Declare any dependencies that are still in development here instead of in
 # your gemspec. These might include edge Rails or gems from your path or
