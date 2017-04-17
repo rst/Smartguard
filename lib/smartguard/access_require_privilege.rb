@@ -434,7 +434,9 @@ module Access
           end
           if callback == :before_update
             self.send( callback, lambda do |rec| 
-                         rec.check_permission!( priv_key ) if rec.changed?
+                         ActiveSupport::Deprecation.silence do
+                           rec.check_permission!( priv_key ) if rec.changed?
+                         end
                        end)
           else
             self.send( callback, lambda do |rec| 
