@@ -1,4 +1,4 @@
-#--
+ #--
 # Copyright (c) 2007 Robert S. Thau, Smartleaf, Inc.
 # 
 # a copy of this software and associated documentation files (the
@@ -1056,7 +1056,7 @@ module Access
 
         return if @smartguard_attr_write_checks_suppressed
 
-        old_value = read_attribute( attr_name )
+        old_value = _read_attribute( attr_name )
 
         return if old_value.to_s == new_value.to_s
 
