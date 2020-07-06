@@ -1054,7 +1054,8 @@ module Access
 
       def check_attr_write_permission!( attr_name, new_value )
 
-        return if @smartguard_attr_write_checks_suppressed
+        return if instance_variable_defined?("@smartguard_attr_write_checks_suppressed") &&
+                  @smartguard_attr_write_checks_suppressed
 
         old_value = _read_attribute( attr_name )
 
@@ -1084,7 +1085,8 @@ module Access
           klass = self.class.class_for_associate( assoc_name )
 
           if klass.respond_to?( :associate_privilege ) &&
-              (@smartguard_checked_associate.nil? ||
+              (!instance_variable_defined?("@smartguard_checked_associate") ||
+               @smartguard_checked_associate.nil? ||
                !@smartguard_checked_associate.is_a?( klass ) ||
                !new_value == @smartguard_checked_associate.id)
 

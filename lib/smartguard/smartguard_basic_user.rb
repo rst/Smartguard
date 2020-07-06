@@ -117,7 +117,7 @@ module SmartguardBasicUser
     end
 
     cond_str = 'role_id in ' + self.class.role_assigned_cond( '?' )
-    if !@permissions
+    if !instance_variable_defined?("@permissions") || @permissions.nil?
       @permissions ||= Permission.where([cond_str, self]).to_a
     end
 
