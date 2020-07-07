@@ -8,12 +8,21 @@ gemspec
 # jquery-rails is used by the dummy application
 gem "jquery-rails"
 
-# Other stuff used by the dummy
+# Other stuff used by the dummy.  Drag in both pg and Oracle DB glue code...
 
 gem 'rails', '~> 5.2.4.3'
 
-gem 'ruby-oci8', '~> 2.2.0'
-gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0'
+gem 'pg', '0.15'
+
+if ENV['ORACLE_HOME']
+  gem 'ruby-oci8', '~> 2.1.0'
+  gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0'
+else
+  # No ORACLE_HOME; presumably no Oracle header files present either,
+  # and we'd need those to build the adapter's binary extensions.
+
+  puts "ORACLE_HOME not set; skipping Oracle gems"
+end
 
 # Declare any dependencies that are still in development here instead of in
 # your gemspec. These might include edge Rails or gems from your path or
