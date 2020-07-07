@@ -12,10 +12,10 @@ gem "jquery-rails"
 
 gem 'rails', '~> 5.2.4.3'
 
-gem 'pg', '0.15'
+gem 'pg', '>= 0.18', '< 2.0'
 
 if ENV['ORACLE_HOME']
-  gem 'ruby-oci8', '~> 2.1.0'
+  gem 'ruby-oci8', '~> 2.2.0'
   gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0'
 else
   # No ORACLE_HOME; presumably no Oracle header files present either,
