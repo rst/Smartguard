@@ -1,6 +1,9 @@
 postgres: &postgres
   adapter: postgresql
   database: smartguard_test
+  user: rst
+  password: badpassword1
+  host: backtester2
 
 oracle: &oracle
   adapter: oracle_enhanced

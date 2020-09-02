@@ -362,10 +362,10 @@ module Access
 	implied_privs_conds = self.sg_implied_priv_to_privs[priv].collect { |x| "or p.privilege = '#{x}'" }.join(" ")
 
         return sanitize_sql( [ <<-END_SQL, keys ] )
-            (select #{maybe_distinct} #{table_name}.id from #{table_name},
-               (select permissions.*
+            (with p as materialized (select permissions.*
                 from permissions
-                where role_id in #{role_ids_clause} order by 1) p
+                where role_id in #{role_ids_clause})
+             select #{maybe_distinct} #{table_name}.id from #{table_name}, p
              where (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
                and (p.class_name = :class_name)
                and (p.is_grant   = :false)
