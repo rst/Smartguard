@@ -1023,6 +1023,11 @@ module Access
         super
       end
 
+      def _write_attribute( attr_name, value )
+        check_attr_write_permission!( attr_name, value )
+        super
+      end
+
       private
 
       def sanitize_sql( args )
@@ -1045,11 +1050,6 @@ module Access
           @smartguard_attr_write_checks_suppressed = false
         end
 
-      end
-
-      def _write_attribute( attr_name, value )
-        check_attr_write_permission!( attr_name, value )
-        super
       end
 
       def check_attr_write_permission!( attr_name, new_value )
