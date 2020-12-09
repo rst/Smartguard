@@ -93,7 +93,7 @@ class PermissioningTest < ActiveSupport::TestCase
       begin
         yield msg
       ensure
-        perm.reload.update_attributes! attr => old_val
+        perm.reload.update! attr => old_val
       end
     end
   end
@@ -129,11 +129,11 @@ class PermissioningTest < ActiveSupport::TestCase
     old_expiry_date = assignment.invalid_after
     begin
       expiry_dates.each do |date|
-        assignment.update_attributes! :invalid_after => date
+        assignment.update! :invalid_after => date
         yield
       end
     ensure
-      assignment.update_attributes! :invalid_after => old_expiry_date
+      assignment.update! :invalid_after => old_expiry_date
     end
   end
 
@@ -390,10 +390,10 @@ class PermissioningTest < ActiveSupport::TestCase
     with_test_role_for_unprivileged_guy do |luser, role|
 
       subrole = Role.create! :name => 'subrole'
-      role.update_attributes! :parent_role => subrole
+      role.update! :parent_role => subrole
 
       ssrole  = Role.create! :name => 'ssrole'
-      subrole.update_attributes! :parent_role => ssrole
+      subrole.update! :parent_role => ssrole
 
       target_roles = [role, subrole, ssrole]
 
@@ -753,22 +753,22 @@ class PermissioningTest < ActiveSupport::TestCase
       assert_choices_for_grant_yields gperm, 
         Blog.where( owner_firm_id: firms(:mertz) )
 
-      gperm.update_attributes! :target_owner_firm => firms(:dubuque)
+      gperm.update! :target_owner_firm => firms(:dubuque)
       assert_choices_for_grant_yields gperm, 
         Blog.where( owner_firm_id: firms(:dubuque) )
 
-      gperm.update_attributes! :target_owned_by_self => true
+      gperm.update! :target_owned_by_self => true
       assert_equal [], Blog.choices_for_grant_target( gperm )
 
-      gperm.update_attributes! :target_owned_by_self => false
-      gperm.update_attributes! :is_grant => false
+      gperm.update! :target_owned_by_self => false
+      gperm.update! :is_grant => false
       assert_equal [], Blog.choices_for_grant_target( gperm )
 
-      gperm.update_attributes! :is_grant => true
-      gperm.update_attributes! :class_name => 'User', :privilege => 'any'
+      gperm.update! :is_grant => true
+      gperm.update! :class_name => 'User', :privilege => 'any'
       assert_equal [], Blog.choices_for_grant_target( gperm )
 
-      gperm.update_attributes! :class_name => 'Blog'
+      gperm.update! :class_name => 'Blog'
       assert_choices_for_grant_yields gperm, 
         Blog.where(owner_firm_id: firms(:dubuque) )
 

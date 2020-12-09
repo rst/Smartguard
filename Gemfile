@@ -10,13 +10,13 @@ gem "jquery-rails"
 
 # Other stuff used by the dummy.  Drag in both pg and Oracle DB glue code...
 
-gem 'rails', '~> 5.2.4.3'
+gem 'rails', '~> 6.1.0'
 
 gem 'pg', '>= 0.18', '< 2.0'
 
 if ENV['ORACLE_HOME']
-  gem 'ruby-oci8', '~> 2.2.0'
-  gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0'
+  #gem 'ruby-oci8', '~> 2.2.0'
+  #gem 'activerecord-oracle_enhanced-adapter', '~> 5.2.0'
 else
   # No ORACLE_HOME; presumably no Oracle header files present either,
   # and we'd need those to build the adapter's binary extensions.

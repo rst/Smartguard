@@ -98,7 +98,7 @@ class StiTest < ActiveSupport::TestCase
     assert_requires( owner_firm_perm( :update_guarded, Report, firms(:mertz)),
                      owner_firm_perm( :update, Report, firms(:mertz)) 
                      ) do
-      @mertz_billing.update_attributes! :guarded_int => 3
+      @mertz_billing.update! :guarded_int => 3
 
       # Grumpf.  Bug(?) in assert_requires; tries success option before
       # failures, with the result that some things that *should* fail
