@@ -805,7 +805,7 @@ class PermissioningTest < ActiveSupport::TestCase
       assert_equal( mblog_hashes,
                     Blog.choice_hashes_for_grant_target( gperm,
                                                   :columns => cols,
-                                                  :joins => joins ) )
+                                                  :joins => joins ).to_a )
 
     end
 
