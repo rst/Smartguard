@@ -32,3 +32,4 @@ end
 # To use debugger, and other tools...
 # gem 'debugger'
 gem 'pry-rails'
+gem 'pry-byebug'

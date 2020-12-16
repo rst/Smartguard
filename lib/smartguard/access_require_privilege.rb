@@ -1028,6 +1028,11 @@ module Access
         super
       end
 
+      def write_attribute( attr_name, value )
+        check_attr_write_permission!( attr_name, value )
+        super
+      end
+
       private
 
       def sanitize_sql( args )

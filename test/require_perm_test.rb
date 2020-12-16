@@ -500,7 +500,9 @@ class RequirePermTest < ActiveSupport::TestCase
     assert_nil my_comment.blog_entry_id
 
     assert_requires( bperm_add ) do
+      puts "before: #{my_comment.blog_entry_id.inspect}"
       my_entry_b.entry_comments << my_comment
+      puts "after: #{my_comment.blog_entry_id.inspect}"
     end
 
     assert_requires( bperm_kill ) do 
