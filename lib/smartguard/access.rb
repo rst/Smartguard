@@ -333,46 +333,63 @@ module Access
           return "(select #{table_name}.id from #{table_name} where 2+2=5)"
         end
 
-        # Note that we use Rails' pseudo-bind-parameters below
-        # to avoid DB dependencies on the syntax for "false"
-
         user = keyword_args[:user] || User.current
-        role_ids_clause = 
-          keyword_args[:role_ids_subquery] || User.role_assigned_cond(':user')
+        klass_perms = (user.perms_for_class( sg_base_class_name ) || {})
+        perms = klass_perms[priv] || []
+        perms += klass_perms[:any] || []
 
-        if user.nil? && keyword_args[:role_ids_subquery].nil?
-          raise ArgumentError.new("Cannot generate where clause without user")
+        if perms.empty?
+          return "(select #{table_name}.id from #{table_name} where 2+2=5)"
         end
 
-        keys = { 
-          :user       => user,
-          :privilege  => priv.to_s,
-          :class_name => sg_base_class_name,
-          :false      => false,
+        clauses = perms.collect{ |perm|
+          # nasty special case here for perms that have *both* target_user_id
+          # set and target_owned_by_self
+          owner_ack = self.owner_access_control_key
+          if (self.access_control_keys.include?(owner_ack) and
+              perm.target_owner_id != nil and
+              perm.target_owned_by_self and
+              perm.target_owner_id != nil and
+              perm.target_owner_id != user.id)
+            return nil
+          else
+            subclauses = self.access_control_keys.collect{ |k|
+              target_id = perm['target_' + k]
+              if (k == owner_ack && perm.target_owned_by_self)
+                target_id ||= user.id
+              end
+              if target_id.nil?
+                nil
+              else
+                sanitize_sql ["#{table_name}.#{k} = ?", target_id]
+              end
+            }.compact
+            if !perm.target_id.nil?
+              subclauses << sanitize_sql(["#{table_name}.id = ?", perm.target_id])
+            end
+            if subclauses.empty?
+              "(1 = 1)"
+            else
+              "(" + subclauses.join(' and ') + ")"
+            end
+          end
         }
+        clauses = clauses.compact
+        where_clause =
+          if clauses.empty?
+            '(1 = 1)'
+          else
+            clauses.join(' or ')
+          end
 
         maybe_distinct = keyword_args[:distinct] ? 'distinct' : ''
 
-        table           = self.table_name
-        owner_id_attr   = self.owner_access_control_key
-        self_owner_cond = owner_id_attr.nil? ? '2 + 2 = 5' : 
-                          "#{table}.#{owner_id_attr} = :user"
-
-        # look up implied privs
-	implied_privs_conds = self.sg_implied_priv_to_privs[priv].collect { |x| "or p.privilege = '#{x}'" }.join(" ")
-
-        return sanitize_sql( [ <<-END_SQL, keys ] )
-            (with p as materialized (select permissions.*
-                from permissions
-                where role_id in #{role_ids_clause})
-             select #{maybe_distinct} #{table_name}.id from #{table_name}, p
-             where (p.privilege  = :privilege or p.privilege = 'any' #{implied_privs_conds})
-               and (p.class_name = :class_name)
-               and (p.is_grant   = :false)
-               and (p.target_owned_by_self = :false or #{self_owner_cond})
-               and #{self.permission_grant_conditions}
-            )
+        retval = <<-END_SQL
+          (select #{maybe_distinct} #{table_name}.id from #{table_name}
+           where #{where_clause})
         END_SQL
+
+        return retval
 
       end
 

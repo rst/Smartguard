@@ -500,8 +500,8 @@ class PermissioningTest < ActiveSupport::TestCase
     # it still shouldn't grant access.
 
     with_access_blocking_tweaks( perm ) do |msg|
-      assert_equal 0, (klass.count_permitting op), msg
       user.permissions :force_reload
+      assert_equal 0, (klass.count_permitting op), msg
       assert !user.can?( op, recs.first )
     end
 
@@ -509,6 +509,7 @@ class PermissioningTest < ActiveSupport::TestCase
 
     with_access_granting_tweaks( perm ) do |msg|
 
+      user.permissions :force_reload
       if user.role_assignments.where(role_id: role).empty?
         # Indirectly assigned as subrole
         check_access_grant( recs, user, klass, op, msg )
@@ -518,6 +519,7 @@ class PermissioningTest < ActiveSupport::TestCase
         # If the role is expired, we shouldn't grant access either.
 
         with_expired_role_assignment( user, role ) do
+          user.permissions :force_reload
           assert_equal 0, (klass.count_permitting op), msg + ' in expired role'
         end
 
@@ -526,6 +528,7 @@ class PermissioningTest < ActiveSupport::TestCase
         # number out of 'klass.count_permitting'.
 
         with_current_role_assignment( user, role ) do
+          user.permissions :force_reload
           check_access_grant( recs, user, klass, op, msg )
         end
       end

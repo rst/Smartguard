@@ -288,6 +288,8 @@ module SmartguardBasicUser
     implied_permissions 
   end
 
+  public
+
   def perms_for_class( class_name, force_reload = false ) # :nodoc:
     @permissions_by_class_and_op ||= {}
     @permissions_by_class_and_op[class_name] = nil if force_reload 
@@ -298,6 +300,8 @@ module SmartguardBasicUser
     end
     @permissions_by_class_and_op[class_name]
   end
+
+  protected
 
   def sort_permissions( perms )
 
