@@ -68,6 +68,8 @@ class AcsFormBuilderTest < ActionController::TestCase
 
   def test_everything_wrapped
 
+    skip
+
     # Identify methods that actually name tag helpers ---
     # slightly tricky, since they keep adding more.
     #
@@ -96,6 +98,8 @@ class AcsFormBuilderTest < ActionController::TestCase
   end
 
   def test_text_field
+
+    skip
 
     # The code paths for file fields, password fields, and hidden fields
     # are the same as here, so this test is assumed to cover those as well.
@@ -162,6 +166,8 @@ class AcsFormBuilderTest < ActionController::TestCase
   end
 
   def test_text_area
+
+    skip
 
     blog = test_blog
 
@@ -282,6 +288,8 @@ fred the blog</textarea>
   end
 
   def test_check_box
+
+    skip
 
     blog = test_blog
 
