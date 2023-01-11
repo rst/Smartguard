@@ -10,7 +10,8 @@ gem "jquery-rails"
 
 # Other stuff used by the dummy.  Drag in both pg and Oracle DB glue code...
 
-gem 'rails', '~> 6.1.0'
+gem 'rails', '~> 7.0.4'
+gem 'sprockets-rails'
 
 gem 'pg', '>= 0.18', '< 2.0'
 
