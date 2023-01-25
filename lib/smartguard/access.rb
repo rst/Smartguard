@@ -121,7 +121,7 @@ module Access
     module ClassMethods
 
       def class_inheritable_accessor( sym, opts = {} )
-        class_attribute sym, opts
+        class_attribute sym, **opts
       end
 
       def class_inheritable_reader( sym )
