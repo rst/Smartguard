@@ -59,6 +59,10 @@ class PhonyBlog < ActiveRecord::Base
     yield arg + ', but I am a cow!'
   end
 
+  def unguarded_set_attrs_for_copy!(attrs)
+    smartguard_set_attrs_for_copy!(attrs)
+  end
+
 end
 
 class PhonyNoPerms < ActiveRecord::Base
@@ -322,6 +326,35 @@ class RequirePermTest < ActiveSupport::TestCase
 
   end
 
+  # Tests for the bypass for copy functionality
+
+  def test_set_attrs_for_copy_unsaved
+    with_test_role_for_unprivileged_guy(:no_grants) do |user, role|
+      attr_test_phony = PhonyBlog.new
+      attr_test_phony.unguarded_set_attrs_for_copy!( :attr_set_guarded_grub =>
+                                                     'bozo' )
+      assert_equal 'bozo', attr_test_phony.attr_set_guarded_grub
+      assert_raises( PermissionFailure ) do
+        attr_test_phony.attr_set_guarded_grub = 'clown'
+      end
+    end
+  end
+
+  def test_set_attrs_for_copy_saved
+    attr_test_phony = nil
+
+    assert_requires( owner_perm(:change_name, PhonyBlog, users(:lucy))) do
+      attr_test_phony = PhonyBlog.create! :owner => users(:lucy), 
+                                          :owner_firm => firms(:ricardo),
+                                          :name => "phony"
+    end
+
+    assert_raises( ArgumentError ) do
+      attr_test_phony.unguarded_set_attrs_for_copy!( :attr_set_guarded_grub =>
+                                                     'bozo' )
+    end
+  end
+
   # Test for permits_create?  Note that we must tweak the classes
   # themselves to easily cover all cases
 
@@ -467,7 +500,9 @@ class RequirePermTest < ActiveSupport::TestCase
     assert_nil my_comment.blog_entry_id
 
     assert_requires( bperm_add ) do
+      puts "before: #{my_comment.blog_entry_id.inspect}"
       my_entry_b.entry_comments << my_comment
+      puts "after: #{my_comment.blog_entry_id.inspect}"
     end
 
     assert_requires( bperm_kill ) do 
@@ -715,7 +750,7 @@ class RequirePermTest < ActiveSupport::TestCase
 
   def test_wildcards_dont_allow_forbidden_operations
 
-    my_np = PhonyNeverPermits.find :first
+    my_np = PhonyNeverPermits.first
 
     with_permission( wildcard_perm( :any, PhonyNeverPermits )) do
       assert_equal [], PhonyNeverPermits.all_permitting( :forbidden_operation )
@@ -803,15 +838,14 @@ class RequirePermTest < ActiveSupport::TestCase
 
     check_permits_both_ways( owner, other_user ) do | should_it, who |
       assert_access_query_correct(should_it, my_entry, "#{who} upd txt") do
-        BlogEntry.find :all, 
-          :conditions => BlogEntry.where_permits_update_attr( :entry_txt )
+        BlogEntry.where( BlogEntry.where_permits_update_attr( :entry_txt ))
       end
 
       ids_permitting_qry = BlogEntry.ids_permitting_update_attr( :entry_txt )
       ids = ActiveRecord::Base.connection.select_values( ids_permitting_qry )
 
       where_permits_cond = BlogEntry.where_permits_update_attr( :entry_txt )
-      records = BlogEntry.find :all, :conditions => where_permits_cond
+      records = BlogEntry.where( where_permits_cond ).to_a
 
       assert_equal records.collect(&:id).sort, ids.collect(&:to_i).sort
 
@@ -819,15 +853,14 @@ class RequirePermTest < ActiveSupport::TestCase
 
     check_permits_both_ways( owner, other_user ) do | should_it, who |
       assert_access_query_correct(should_it, my_entry, "#{who} destroy") do
-        BlogEntry.find :all, 
-          :conditions => BlogEntry.where_permits_action( :destroy )
+        BlogEntry.where( BlogEntry.where_permits_action( :destroy ))
       end
 
       ids_permitting_qry = BlogEntry.ids_permitting_action( :destroy )
       ids = ActiveRecord::Base.connection.select_values( ids_permitting_qry )
 
       where_permits_cond = BlogEntry.where_permits_action( :destroy )
-      records = BlogEntry.find :all, :conditions => where_permits_cond
+      records = BlogEntry.where( where_permits_cond ).to_a
 
       assert_equal records.collect(&:id).sort, ids.collect(&:to_i).sort
 

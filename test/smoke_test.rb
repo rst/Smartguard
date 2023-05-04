@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class SmokeTest < Test::Unit::TestCase
+class SmokeTest < ActiveSupport::TestCase
 
   # Can't figure out how to get the sanity tests working here!
   # Stuffing them in app-level test/unit for now...

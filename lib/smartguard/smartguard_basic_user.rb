@@ -30,39 +30,6 @@ module SmartguardBasicUser
 
   module ClassMethods
 
-    # Weird metaprogramming trick to set up the roles association,
-    # even though the current sql condition isn't known until after
-    # we've connected to the database...
-
-    def ensure_roles_assoc      # :nodoc:
-      return if @have_roles_assoc
-      undef_method :roles
-      self.has_many :roles, 
-        #:through => :role_assignments,
-        :finder_sql => Proc.new {
-          sanitize_sql ['select * from roles where id in ' +
-                          self.class.role_assigned_cond(':id'),
-                        {:id => id}]
-        },
-        :counter_sql => Proc.new {
-          sanitize_sql ['select count(*) from roles where id in ' +
-                          self.class.role_assigned_cond(':id'),
-                        {:id => id}]
-        }
-
-      # Apparently, 'undef_method' doesn't just undefine the method,
-      # it puts in a "no such method here" stub that hides the method
-      # that 'has_many' defines on our GeneratedFeatureMethods module.
-      # So, we have to explicitly forward it here.  Gaaaaaah!
-
-      meth = generated_feature_methods.instance_method( :roles )
-      define_method :roles do | *args |
-        meth.bind( self ).call( *args )
-      end
-
-      @have_roles_assoc = :true
-    end
-
     def role_assigned_cond( id_stub ) #:nodoc:
 
       # See also roles_without_assigned_role, below, which
@@ -163,21 +130,22 @@ module SmartguardBasicUser
     end
 
     cond_str = 'role_id in ' + self.class.role_assigned_cond( '?' )
-    if !@permissions
-      @permissions ||= Permission.find :all, :conditions => [cond_str, self]
+    if !instance_variable_defined?("@permissions") || @permissions.nil?
+      @permissions ||= Permission.where([cond_str, self]).to_a
     end
 
     return @permissions
   end
 
-  # Weird metaprogramming trick; we want the effect of has_many :roles,
-  # but with conditions including RoleAssignment.current_sql_condition,
-  # which varies with the database.  So we use this trick to bind
-  # the association late...
+  # Read-only pseudo-association for this user's roles.
+  # To modify, alter role assignments.
 
-  def roles( force_reload = false ) # :nodoc:
-   self.class.ensure_roles_assoc # redefines the 'roles' method...
-   self.roles( force_reload )    # ... now invoke the new one.
+  def roles(reload = false)
+    @roles = nil if reload
+    @roles ||=
+      Role.find_by_sql ['select * from roles where id in ' +
+                          self.class.role_assigned_cond(':id'),
+                        {:id => id}]
   end
 
   # Returns all roles we'd have if the given role *wasn't* assigned;
@@ -320,6 +288,8 @@ module SmartguardBasicUser
     implied_permissions 
   end
 
+  public
+
   def perms_for_class( class_name, force_reload = false ) # :nodoc:
     @permissions_by_class_and_op ||= {}
     @permissions_by_class_and_op[class_name] = nil if force_reload 
@@ -330,6 +300,8 @@ module SmartguardBasicUser
     end
     @permissions_by_class_and_op[class_name]
   end
+
+  protected
 
   def sort_permissions( perms )
 

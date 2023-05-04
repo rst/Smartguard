@@ -41,7 +41,7 @@ class StiTest < ActiveSupport::TestCase
 
   def setup
     with_permission( wildcard_perm( :find, Report )) do
-      @all_reports     = Report.find :all
+      @all_reports     = Report.all.to_a
       @mertz_billing   = reports(:mertz_billing_report)
       @mertz_activity  = reports(:mertz_activity_report)
       @ricardo_billing = reports(:ricardo_billing_report)
@@ -98,7 +98,7 @@ class StiTest < ActiveSupport::TestCase
     assert_requires( owner_firm_perm( :update_guarded, Report, firms(:mertz)),
                      owner_firm_perm( :update, Report, firms(:mertz)) 
                      ) do
-      @mertz_billing.update_attributes! :guarded_int => 3
+      @mertz_billing.update! :guarded_int => 3
 
       # Grumpf.  Bug(?) in assert_requires; tries success option before
       # failures, with the result that some things that *should* fail

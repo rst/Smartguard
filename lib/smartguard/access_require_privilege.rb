@@ -1,4 +1,4 @@
-#--
+ #--
 # Copyright (c) 2007 Robert S. Thau, Smartleaf, Inc.
 # 
 # a copy of this software and associated documentation files (the
@@ -432,9 +432,17 @@ module Access
               define_method( callback ){}
             end
           end
-          self.send( callback, lambda do |rec| 
-                       rec.check_permission!( priv_key )
-                     end)
+          if callback == :before_update
+            self.send( callback, lambda do |rec| 
+                         ActiveSupport::Deprecation.silence do
+                           rec.check_permission!( priv_key ) if rec.changed?
+                         end
+                       end)
+          else
+            self.send( callback, lambda do |rec| 
+                         rec.check_permission!( priv_key )
+                       end)
+          end
         end
 
       end
@@ -468,9 +476,13 @@ module Access
       # belongs_to wrapper which arranges for permissions to be
       # checked at appropriate points.
 
-      def belongs_to( assoc_name, options = {} ) #:nodoc:
+      def belongs_to( assoc_name, scope = nil, **options ) #:nodoc:
 
-        super( assoc_name, options )
+        if options.nil?
+          super( assoc_name, scope )
+        else
+          super( assoc_name, scope, **options )
+        end
 
         raise "huh?" unless self.method_defined?( assoc_name )
 
@@ -629,7 +641,7 @@ module Access
       def class_for_associate( assoc_name ) # :nodoc:
         @classes_for_associates ||= {}
         @classes_for_associates[assoc_name] ||= 
-          reflections[assoc_name].class_name.constantize
+          self.reflect_on_association(assoc_name).class_name.constantize
       end
 
       def base_class_for_associate( assoc_name ) # :nodoc:
@@ -735,10 +747,10 @@ module Access
       # attributes= wrapper which honors attribute_block_set_groups
       # (from the class level)
 
-      def assign_attributes( new_attributes, options = {} )  # :nodoc:
+      def assign_attributes( new_attributes )  # :nodoc:
 
         return if new_attributes.nil?
-        new_attrs = new_attributes.dup
+        new_attrs = sanitize_for_mass_assignment(new_attributes).dup
         new_attrs.stringify_keys!
 
         self.class.attribute_block_set_groups.each do |blok|
@@ -749,12 +761,16 @@ module Access
             end
           end
           if blok_attrs.size > 0
-            super blok_attrs, options
+            super blok_attrs
           end
         end
 
-        super new_attrs, options
+        super new_attrs
         
+      end
+
+      def attributes=( new_attributes )
+        assign_attributes( new_attributes )
       end
 
       # Returns the normal permissions with any items which are 
@@ -957,8 +973,8 @@ module Access
 
         real_conds = sql_conds.join( ' and ' )
 
-        return klass.find( :all, opts.merge!( :conditions => real_conds ) )
-        
+        return klass.applying_deprecated_query_args( opts ).where( real_conds )
+
       end
 
       # Support reflection
@@ -1007,10 +1023,9 @@ module Access
         super
       end
 
-      private
-
-      def sanitize_sql( args )
-        self.class.send :sanitize_sql, args
+      def _write_attribute( attr_name, value )
+        check_attr_write_permission!( attr_name, value )
+        super
       end
 
       def write_attribute( attr_name, value )
@@ -1018,13 +1033,53 @@ module Access
         super
       end
 
+      private
+
+      def sanitize_sql( args )
+        self.class.send :sanitize_sql, args
+      end
+
+      def smartguard_set_attrs_for_copy!( attrs )
+
+        unless new_record?
+          raise ArgumentError, 
+                "Can't call set_attrs_for_copy on existing record"
+        end
+
+        begin
+          @smartguard_attr_write_checks_suppressed = true
+          attrs.each do |k,v|
+            self.send("#{k}=",v)
+          end
+        ensure
+          @smartguard_attr_write_checks_suppressed = false
+        end
+
+      end
+
       def check_attr_write_permission!( attr_name, new_value )
 
-        old_value = read_attribute( attr_name )
+        return if instance_variable_defined?("@smartguard_attr_write_checks_suppressed") &&
+                  @smartguard_attr_write_checks_suppressed
+
+        old_value = _read_attribute( attr_name )
 
         return if old_value.to_s == new_value.to_s
 
-        priv = set_attr_privilege( attr_name.to_sym )
+        # Re: oddness that follows -- 'set_attr_privilege' calls
+        # 'new_record?', which can in turn call 'write_attribute'
+        # to unwind transaction state, leading to infinite loops.
+        # Since we assume that the prior state was safe, anyway,
+        # we just let activerecord unwind (if it's going to do
+        # that) without interfering.
+
+        priv = begin
+                 @smartguard_attr_write_checks_suppressed = true
+                 set_attr_privilege( attr_name.to_sym )
+               ensure
+                 @smartguard_attr_write_checks_suppressed = false
+               end
+
         self.check_permission!( priv ) unless priv.nil?
 
         assoc_name = self.class.reflected_privilege( :fk_for_associate, 
@@ -1035,7 +1090,8 @@ module Access
           klass = self.class.class_for_associate( assoc_name )
 
           if klass.respond_to?( :associate_privilege ) &&
-              (@smartguard_checked_associate.nil? ||
+              (!instance_variable_defined?("@smartguard_checked_associate") ||
+               @smartguard_checked_associate.nil? ||
                !@smartguard_checked_associate.is_a?( klass ) ||
                !new_value == @smartguard_checked_associate.id)
 

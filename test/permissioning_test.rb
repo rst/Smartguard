@@ -93,7 +93,7 @@ class PermissioningTest < ActiveSupport::TestCase
       begin
         yield msg
       ensure
-        perm.reload.update_attributes! attr => old_val
+        perm.reload.update! attr => old_val
       end
     end
   end
@@ -124,17 +124,16 @@ class PermissioningTest < ActiveSupport::TestCase
   end
 
   def with_dated_role_assignment( user, role, expiry_dates )
-    assignment = user.role_assignments.find :first,
-                   :conditions => ['role_id = ?', role]
+    assignment = user.role_assignments.where(['role_id = ?', role]).first
     assert_not_nil assignment   # If this fails, bug in the test code.
     old_expiry_date = assignment.invalid_after
     begin
       expiry_dates.each do |date|
-        assignment.update_attributes! :invalid_after => date
+        assignment.update! :invalid_after => date
         yield
       end
     ensure
-      assignment.update_attributes! :invalid_after => old_expiry_date
+      assignment.update! :invalid_after => old_expiry_date
     end
   end
 
@@ -164,11 +163,11 @@ class PermissioningTest < ActiveSupport::TestCase
     User.as( users( :universal_grant_guy)) do
       user.role_assignments.create! :role => roles(:mertz_admin)
       assert_equal mertz_permissions, user_current_permissions.call
-      assert_equal 1,                 user.roles.count
+      assert_equal 1,                 user.roles(:reload).count
 
       user.role_assignments.create! :role => roles(:ricardo_admin)
       assert_equal mixed_permissions, user_current_permissions.call
-      assert_equal 2,                 user.roles.count
+      assert_equal 2,                 user.roles(:reload).count
     end
 
     # Expiration date in the future shouldn't affect anything.
@@ -183,7 +182,7 @@ class PermissioningTest < ActiveSupport::TestCase
     # current roles.
 
     with_expired_role_assignment( user, roles(:mertz_admin) ) do
-      assert_equal 1,                   user.roles.count
+      assert_equal 1,                   user.roles(:reload).count
       assert_equal 2,                   user.role_assignments.count
       assert_equal ricardo_permissions, user_current_permissions.call
     end
@@ -254,8 +253,7 @@ class PermissioningTest < ActiveSupport::TestCase
       # But, if we deassign the parent role directly (so that its
       # permissions are only granted by inheritance from the child role)...
 
-      ras = user.role_assignments.find( :all, 
-                                        :conditions=>{:role_id => parent_role})
+      ras = user.role_assignments.where(role_id: parent_role)
       ras.each do |ra| ra.destroy end
 
       user = User.find( user.id )
@@ -392,10 +390,10 @@ class PermissioningTest < ActiveSupport::TestCase
     with_test_role_for_unprivileged_guy do |luser, role|
 
       subrole = Role.create! :name => 'subrole'
-      role.update_attributes! :parent_role => subrole
+      role.update! :parent_role => subrole
 
       ssrole  = Role.create! :name => 'ssrole'
-      subrole.update_attributes! :parent_role => ssrole
+      subrole.update! :parent_role => ssrole
 
       target_roles = [role, subrole, ssrole]
 
@@ -502,8 +500,8 @@ class PermissioningTest < ActiveSupport::TestCase
     # it still shouldn't grant access.
 
     with_access_blocking_tweaks( perm ) do |msg|
-      assert_equal 0, (klass.count_permitting op), msg
       user.permissions :force_reload
+      assert_equal 0, (klass.count_permitting op), msg
       assert !user.can?( op, recs.first )
     end
 
@@ -511,7 +509,8 @@ class PermissioningTest < ActiveSupport::TestCase
 
     with_access_granting_tweaks( perm ) do |msg|
 
-      if user.role_assignments.find( :all, :conditions => { :role_id => role }).empty?
+      user.permissions :force_reload
+      if user.role_assignments.where(role_id: role).empty?
         # Indirectly assigned as subrole
         check_access_grant( recs, user, klass, op, msg )
       else
@@ -520,6 +519,7 @@ class PermissioningTest < ActiveSupport::TestCase
         # If the role is expired, we shouldn't grant access either.
 
         with_expired_role_assignment( user, role ) do
+          user.permissions :force_reload
           assert_equal 0, (klass.count_permitting op), msg + ' in expired role'
         end
 
@@ -528,6 +528,7 @@ class PermissioningTest < ActiveSupport::TestCase
         # number out of 'klass.count_permitting'.
 
         with_current_role_assignment( user, role ) do
+          user.permissions :force_reload
           check_access_grant( recs, user, klass, op, msg )
         end
       end
@@ -574,8 +575,7 @@ class PermissioningTest < ActiveSupport::TestCase
 
     with_access_granting_tweaks( perm ) do 
 
-      if !user.role_assignments.find( :first, 
-                                      :conditions => { :role_id => role })
+      if !user.role_assignments.where( role_id: role ).first
 
         check_users_permitted_by_grant(klass, priv, user,
                                        all_recs, permitted_recs)
@@ -703,7 +703,7 @@ class PermissioningTest < ActiveSupport::TestCase
     rec_ids = recs.collect &:id
     user.permissions :force_reload
 
-    (klass.find :all).each do |rec|
+    klass.all.each do |rec|
       if rec_ids.include?( rec.id )
         assert rec.permits?( op ), msg
       else
@@ -730,7 +730,7 @@ class PermissioningTest < ActiveSupport::TestCase
     rec_ids = (recs.collect &:id).sort.uniq
     assert_equal rec_ids.sort, granted_ids.sort
 
-    (klass.find :all).each do |rec|
+    klass.all.each do |rec|
       if granted_ids.include?( rec.id )
         assert  perms.any? {|perm| perm.allows?( rec, op, user )}
         assert  user.can?( op, rec )
@@ -754,26 +754,26 @@ class PermissioningTest < ActiveSupport::TestCase
          :has_grant_option => false
 
       assert_choices_for_grant_yields gperm, 
-        Blog.find_all_by_owner_firm_id( firms(:mertz) )
+        Blog.where( owner_firm_id: firms(:mertz) )
 
-      gperm.update_attributes! :target_owner_firm => firms(:dubuque)
+      gperm.update! :target_owner_firm => firms(:dubuque)
       assert_choices_for_grant_yields gperm, 
-        Blog.find_all_by_owner_firm_id( firms(:dubuque) )
+        Blog.where( owner_firm_id: firms(:dubuque) )
 
-      gperm.update_attributes! :target_owned_by_self => true
+      gperm.update! :target_owned_by_self => true
       assert_equal [], Blog.choices_for_grant_target( gperm )
 
-      gperm.update_attributes! :target_owned_by_self => false
-      gperm.update_attributes! :is_grant => false
+      gperm.update! :target_owned_by_self => false
+      gperm.update! :is_grant => false
       assert_equal [], Blog.choices_for_grant_target( gperm )
 
-      gperm.update_attributes! :is_grant => true
-      gperm.update_attributes! :class_name => 'User', :privilege => 'any'
+      gperm.update! :is_grant => true
+      gperm.update! :class_name => 'User', :privilege => 'any'
       assert_equal [], Blog.choices_for_grant_target( gperm )
 
-      gperm.update_attributes! :class_name => 'Blog'
+      gperm.update! :class_name => 'Blog'
       assert_choices_for_grant_yields gperm, 
-        Blog.find_all_by_owner_firm_id( firms(:dubuque) )
+        Blog.where(owner_firm_id: firms(:dubuque) )
 
     end
   end
@@ -796,7 +796,7 @@ class PermissioningTest < ActiveSupport::TestCase
          :privilege => :post, :target_owned_by_self => false,
          :has_grant_option => false
 
-      mblog_hashes = Blog.find_all_by_owner_firm_id( firms(:mertz) ).
+      mblog_hashes = Blog.where(owner_firm_id: firms(:mertz)).
         collect{ |blog|
         { 'name' => blog.name, 'firm_name' => blog.owner_firm.name, 
           'id' => blog.id } }
@@ -808,7 +808,7 @@ class PermissioningTest < ActiveSupport::TestCase
       assert_equal( mblog_hashes,
                     Blog.choice_hashes_for_grant_target( gperm,
                                                   :columns => cols,
-                                                  :joins => joins ) )
+                                                  :joins => joins ).to_a )
 
     end
 
@@ -892,10 +892,12 @@ class PermissioningTest < ActiveSupport::TestCase
 
       [nil, 'ric%', 'ricky%'].each do |pat|
 
-        kw_args = {}
-        kw_args[:conditions] = ["name like ?", pat] unless pat.nil?
+        cond = if pat.nil? then nil else ["name like ?", pat] end
 
-        blogs_by_cond = Blog.find_all_by_owner_firm_id(firms(:dubuque),kw_args)
+        by_cond_rel = if cond.nil? then Blog.all else Blog.where(cond) end
+        blogs_by_cond = by_cond_rel.where(owner_firm_id: firms(:dubuque))
+
+        kw_args = if cond.nil? then {} else {conditions: cond} end
         blogs_by_perm = Blog.all_permitting( :post, kw_args )
 
         assert_equal blogs_by_cond.sort_by(&:id), blogs_by_perm.sort_by(&:id)

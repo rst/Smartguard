@@ -94,7 +94,7 @@ module Access
 
     end
 
-    user.role_assignments :force_reload
+    user.role_assignments.reload
     user.permissions      :force_reload
 
     User.as( users(:unprivileged_guy )) do
@@ -108,7 +108,7 @@ module Access
       user.role_assignments.each { |ra| ra.destroy }
     end
 
-    user.role_assignments :force_reload
+    user.role_assignments.reload
     assert_equal 0, user.role_assignments.count
 
     user.permissions :force_reload
